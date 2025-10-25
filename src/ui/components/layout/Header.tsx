@@ -6,6 +6,7 @@ const pageTitles: { [key: string]: string } = {
   '/caisse': 'Caisse Enregistreuse',
   '/inventaire': 'Gestion de l\'Inventaire',
   '/historique': 'Historique des Ventes',
+  '/expenses': 'Dépenses',
 };
 
 const Header: React.FC = () => {

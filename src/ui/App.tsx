@@ -11,6 +11,7 @@ import CashRegister from './pages/CashRegister';
 import Products from './pages/Products';
 import Sales from './pages/Sales';
 import Stock from './pages/Stock';
+import { Expenses } from './pages/Expenses';
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -34,6 +35,7 @@ const App: React.FC = () => {
               <Route path="/produits" element={<Products />} />
               <Route path="/stock" element={<Stock />} />
               <Route path="/ventes" element={<Sales />} />
+              <Route path="/expenses" element={<Expenses />} />
             </Routes>
           </AppLayout>
         </Router>
