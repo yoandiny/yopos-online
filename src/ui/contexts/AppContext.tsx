@@ -2,6 +2,7 @@ import  { createContext, useContext, useState, useMemo, useCallback } from 'reac
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { Product, Sale, CartItem, StockMovement, Expense, Supplier } from '../types';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface AppContextType {
   products: Product[];
@@ -26,6 +27,9 @@ interface AppContextType {
   updateCartQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
+  isFirstLaunch: boolean;
+  initialBalance: number;
+  setupInitialBalance: (balance: number) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -36,7 +40,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const stockMovements = useLiveQuery(() => db.stockMovements.orderBy('createdAt').reverse().toArray(), []);
   const expenses = useLiveQuery(() => db.expenses.orderBy('createdAt').reverse().toArray(), []);
   const suppliers = useLiveQuery(() => db.suppliers.orderBy('name').toArray(), []);
+  
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isFirstLaunch, setIsFirstLaunch] = useLocalStorage<boolean>('isFirstLaunch', true);
+  const [initialBalance, setInitialBalance] = useLocalStorage<number>('initialBalance', 0);
+
+  const setupInitialBalance = useCallback((balance: number) => {
+    setInitialBalance(balance);
+    setIsFirstLaunch(false);
+  }, [setInitialBalance, setIsFirstLaunch]);
 
   const addToCart = useCallback((product: Product) => {
     setCart(prevCart => {
@@ -200,6 +212,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateCartQuantity,
     clearCart,
     cartTotal,
+    isFirstLaunch,
+    initialBalance,
+    setupInitialBalance,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

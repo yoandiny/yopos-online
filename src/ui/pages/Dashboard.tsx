@@ -11,7 +11,7 @@ import PopularProducts from '../components/dashboard/PopularProducts';
 import SalesTrendChart from '../components/dashboard/SalesTrendChart';
 
 const Dashboard: React.FC = () => {
-  const { sales, products, expenses } = useAppContext();
+  const { sales, products, expenses, initialBalance } = useAppContext();
   const [chartPeriod, setChartPeriod] = useState<'weekly' | 'monthly'>('weekly');
 
   const stats = useMemo(() => {
@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
     
     const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const netBalance = totalRevenue - totalExpenses;
+    const netBalance = initialBalance + totalRevenue - totalExpenses;
     
     const lowStockThreshold = 10;
     const lowStockProductsCount = products.filter(p => p.stock > 0 && p.stock <= lowStockThreshold).length;
@@ -55,7 +55,7 @@ const Dashboard: React.FC = () => {
       lowStockProductsCount,
       salesTrendData,
     };
-  }, [sales, products, expenses, chartPeriod]);
+  }, [sales, products, expenses, chartPeriod, initialBalance]);
 
   if (!stats) {
     return <div className="text-center p-8">Chargement des données stratégiques...</div>;
@@ -103,7 +103,7 @@ const Dashboard: React.FC = () => {
         <DashboardStatCard 
           title="Solde Net"
           value={formatCurrency(stats.netBalance)}
-          subtitle="Revenus - Dépenses"
+          subtitle="Solde initial + Revenus - Dépenses"
           icon={Landmark}
           valueColor={stats.netBalance >= 0 ? "text-green-600" : "text-red-600"}
         />
