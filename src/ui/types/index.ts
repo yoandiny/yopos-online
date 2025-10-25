@@ -38,3 +38,11 @@ export interface StockMovement {
   reason: string;
   createdAt: string;
 }
+
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  category: string;
+  createdAt: string;
+}

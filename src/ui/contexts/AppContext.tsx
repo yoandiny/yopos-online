@@ -1,17 +1,21 @@
 import  { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
-import { Product, Sale, CartItem, StockMovement } from '../types';
+import { Product, Sale, CartItem, StockMovement, Expense } from '../types';
 
 interface AppContextType {
   products: Product[];
   sales: Sale[];
   stockMovements: StockMovement[];
+  expenses: Expense[];
   addSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => Promise<void>;
   addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Omit<Product, 'id'>>) => Promise<void>;
   deleteProduct: (productId: string) => Promise<void>;
   adjustStock: (productId: string, quantityChange: number, reason: string) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<void>;
+  updateExpense: (id: string, updates: Partial<Omit<Expense, 'id'>>) => Promise<void>;
+  deleteExpense: (expenseId: string) => Promise<void>;
   cart: CartItem[];
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
@@ -26,6 +30,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const products = useLiveQuery(() => db.products.toArray(), []);
   const sales = useLiveQuery(() => db.sales.orderBy('createdAt').reverse().toArray(), []);
   const stockMovements = useLiveQuery(() => db.stockMovements.orderBy('createdAt').reverse().toArray(), []);
+  const expenses = useLiveQuery(() => db.expenses.orderBy('createdAt').reverse().toArray(), []);
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const addToCart = useCallback((product: Product) => {
@@ -122,6 +127,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
+  const addExpense = useCallback(async (expenseData: Omit<Expense, 'id' | 'createdAt'>) => {
+    const newExpense: Expense = {
+      ...expenseData,
+      id: `exp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+    };
+    await db.expenses.add(newExpense);
+  }, []);
+
+  const updateExpense = useCallback(async (id: string, updates: Partial<Omit<Expense, 'id'>>) => {
+    await db.expenses.update(id, updates);
+  }, []);
+
+  const deleteExpense = useCallback(async (expenseId: string) => {
+    await db.expenses.delete(expenseId);
+  }, []);
+
   const cartTotal = useMemo(() => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   }, [cart]);
@@ -130,11 +152,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     products: products || [],
     sales: sales || [],
     stockMovements: stockMovements || [],
+    expenses: expenses || [],
     addSale,
     addProduct,
     updateProduct,
     deleteProduct,
     adjustStock,
+    addExpense,
+    updateExpense,
+    deleteExpense,
     cart,
     addToCart,
     removeFromCart,
