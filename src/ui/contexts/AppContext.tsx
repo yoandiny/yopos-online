@@ -1,13 +1,14 @@
 import  { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
-import { Product, Sale, CartItem, StockMovement, Expense } from '../types';
+import { Product, Sale, CartItem, StockMovement, Expense, Supplier } from '../types';
 
 interface AppContextType {
   products: Product[];
   sales: Sale[];
   stockMovements: StockMovement[];
   expenses: Expense[];
+  suppliers: Supplier[];
   addSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => Promise<void>;
   addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Omit<Product, 'id'>>) => Promise<void>;
@@ -16,6 +17,9 @@ interface AppContextType {
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<void>;
   updateExpense: (id: string, updates: Partial<Omit<Expense, 'id'>>) => Promise<void>;
   deleteExpense: (expenseId: string) => Promise<void>;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt'>) => Promise<void>;
+  updateSupplier: (id: string, updates: Partial<Omit<Supplier, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteSupplier: (supplierId: string) => Promise<void>;
   cart: CartItem[];
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
@@ -31,6 +35,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const sales = useLiveQuery(() => db.sales.orderBy('createdAt').reverse().toArray(), []);
   const stockMovements = useLiveQuery(() => db.stockMovements.orderBy('createdAt').reverse().toArray(), []);
   const expenses = useLiveQuery(() => db.expenses.orderBy('createdAt').reverse().toArray(), []);
+  const suppliers = useLiveQuery(() => db.suppliers.orderBy('name').toArray(), []);
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const addToCart = useCallback((product: Product) => {
@@ -144,6 +149,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await db.expenses.delete(expenseId);
   }, []);
 
+  const addSupplier = useCallback(async (supplierData: Omit<Supplier, 'id' | 'createdAt'>) => {
+    const newSupplier: Supplier = {
+      ...supplierData,
+      id: `sup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+    };
+    await db.suppliers.add(newSupplier);
+  }, []);
+
+  const updateSupplier = useCallback(async (id: string, updates: Partial<Omit<Supplier, 'id' | 'createdAt'>>) => {
+    await db.suppliers.update(id, updates);
+  }, []);
+
+  const deleteSupplier = useCallback(async (supplierId: string) => {
+    await db.transaction('rw', db.suppliers, db.products, async () => {
+        await db.suppliers.delete(supplierId);
+        const productsToUpdate = await db.products.where({ supplierId }).toArray();
+        for (const product of productsToUpdate) {
+            await db.products.update(product.id, { supplierId: undefined });
+        }
+    });
+    alert('Fournisseur supprimé et produits déliés avec succès.');
+  }, []);
+
   const cartTotal = useMemo(() => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   }, [cart]);
@@ -153,6 +182,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     sales: sales || [],
     stockMovements: stockMovements || [],
     expenses: expenses || [],
+    suppliers: suppliers || [],
     addSale,
     addProduct,
     updateProduct,
@@ -161,6 +191,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addExpense,
     updateExpense,
     deleteExpense,
+    addSupplier,
+    updateSupplier,
+    deleteSupplier,
     cart,
     addToCart,
     removeFromCart,

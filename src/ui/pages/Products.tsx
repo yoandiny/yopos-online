@@ -11,18 +11,23 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { Product } from '../types';
 
 const Products: React.FC = () => {
-  const { products, deleteProduct } = useAppContext();
+  const { products, suppliers, deleteProduct } = useAppContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const supplierMap = useMemo(() => {
+    return new Map(suppliers.map(s => [s.id, s.name]));
+  }, [suppliers]);
+
   const filteredProducts = useMemo(() => {
     return products.filter(p =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.barcode.toLowerCase().includes(searchTerm.toLowerCase())
+      p.barcode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.supplierId && supplierMap.get(p.supplierId)?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }, [products, searchTerm]);
+  }, [products, searchTerm, supplierMap]);
 
   const openNewModal = () => {
     setEditingProduct(null);
@@ -79,6 +84,7 @@ const Products: React.FC = () => {
                 <thead>
                   <tr className="border-b bg-slate-50">
                     <th className="p-4 font-semibold text-sm text-slate-600">Produit</th>
+                    <th className="p-4 font-semibold text-sm text-slate-600">Fournisseur</th>
                     <th className="p-4 font-semibold text-sm text-slate-600">Prix</th>
                     <th className="p-4 font-semibold text-sm text-slate-600">Stock</th>
                     <th className="p-4 font-semibold text-sm text-slate-600">Code-barres</th>
@@ -91,6 +97,7 @@ const Products: React.FC = () => {
                       <td className="p-4">
                         <span className="font-medium text-slate-800">{product.name}</span>
                       </td>
+                      <td className="p-4 text-slate-600">{product.supplierId ? supplierMap.get(product.supplierId) : 'N/A'}</td>
                       <td className="p-4 text-slate-700">{formatCurrency(product.price)}</td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock > 20 ? 'bg-green-100 text-green-800' : product.stock > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
@@ -111,7 +118,7 @@ const Products: React.FC = () => {
                     </tr>
                   )) : (
                     <tr>
-                        <td colSpan={5} className="text-center p-8 text-slate-500">
+                        <td colSpan={6} className="text-center p-8 text-slate-500">
                           {products.length === 0 ? 'Aucun produit trouvé. Cliquez sur "Nouveau Produit" pour commencer.' : 'Aucun produit ne correspond à votre recherche.'}
                         </td>
                     </tr>

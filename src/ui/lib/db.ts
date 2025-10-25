@@ -1,14 +1,23 @@
 import Dexie, { Table } from 'dexie';
-import { Product, Sale, StockMovement, Expense } from '../types';
+import { Product, Sale, StockMovement, Expense, Supplier } from '../types';
 
 export class KessDB extends Dexie {
   products!: Table<Product, string>;
   sales!: Table<Sale, string>;
   stockMovements!: Table<StockMovement, number>;
   expenses!: Table<Expense, string>;
+  suppliers!: Table<Supplier, string>;
 
   constructor() {
     super('KessDB');
+    this.version(5).stores({
+      products: 'id, name, barcode, supplierId',
+      sales: 'id, createdAt',
+      stockMovements: '++id, productId, createdAt',
+      expenses: 'id, createdAt, category',
+      suppliers: 'id, name',
+    });
+    
     this.version(4).stores({
       products: 'id, name, barcode',
       sales: 'id, createdAt',
