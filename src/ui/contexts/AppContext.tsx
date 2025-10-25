@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import  { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { Product, Sale, CartItem, StockMovement } from '../types';

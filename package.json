@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "dist-electron/main.js",
+  "main": "src/electron/main.ts",
   "description": "Application de point de vente (POS) développée avec React, Vite, TypeScript et Electron.",
   "author": "YoTech",
   "license": "MIT",
