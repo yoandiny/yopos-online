@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, ShoppingCart, Package, BarChart, History, BanknoteArrowUp } from 'lucide-react';
+import { LayoutGrid, ShoppingCart, Package, BarChart, History, BanknoteArrowUp, Truck } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Logo from '../../assets/logo.png';
 
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/', icon: LayoutGrid, label: 'Tableau' },
   { to: '/caisse', icon: ShoppingCart, label: 'Caisse' },
   { to: '/produits', icon: Package, label: 'Produits' },
+  { to: '/fournisseurs', icon: Truck, label: 'Fournisseurs' },
   { to: '/stock', icon: BarChart, label: 'Stock' },
   { to: '/ventes', icon: History, label: 'Ventes' },
   {to: '/expenses', icon: BanknoteArrowUp, label: 'Dépenses' },
@@ -25,7 +26,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </header>
 
         {/* Navigation */}
-        <nav className="bg-white rounded-xl shadow-sm p-2 mb-6 flex items-center space-x-2">
+        <nav className="bg-white rounded-xl shadow-sm p-2 mb-6 flex items-center flex-wrap gap-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}

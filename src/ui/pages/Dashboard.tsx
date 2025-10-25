@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, cn } from '../lib/utils';
 import { ShoppingCart, Wallet, TriangleAlert, Landmark } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { subDays, isWithinInterval, startOfDay, endOfDay, format } from 'date-fns';
@@ -12,6 +12,7 @@ import SalesTrendChart from '../components/dashboard/SalesTrendChart';
 
 const Dashboard: React.FC = () => {
   const { sales, products, expenses } = useAppContext();
+  const [chartPeriod, setChartPeriod] = useState<'weekly' | 'monthly'>('weekly');
 
   const stats = useMemo(() => {
     if (!sales || !products || !expenses) return null;
@@ -35,11 +36,12 @@ const Dashboard: React.FC = () => {
     const lowStockThreshold = 10;
     const lowStockProductsCount = products.filter(p => p.stock > 0 && p.stock <= lowStockThreshold).length;
 
-    const salesTrendData = Array.from({ length: 7 }).map((_, i) => {
-        const date = subDays(today, 6 - i);
+    const daysCount = chartPeriod === 'weekly' ? 7 : 30;
+    const salesTrendData = Array.from({ length: daysCount }).map((_, i) => {
+        const date = subDays(today, (daysCount - 1) - i);
         const dailySales = sales.filter(s => startOfDay(new Date(s.createdAt)).getTime() === date.getTime());
         return {
-            date: format(date, 'eee', { locale: fr }),
+            date: format(date, daysCount === 7 ? 'eee' : 'dd/MM', { locale: fr }),
             total: dailySales.reduce((sum, s) => sum + s.total, 0)
         };
     });
@@ -53,7 +55,7 @@ const Dashboard: React.FC = () => {
       lowStockProductsCount,
       salesTrendData,
     };
-  }, [sales, products, expenses]);
+  }, [sales, products, expenses, chartPeriod]);
 
   if (!stats) {
     return <div className="text-center p-8">Chargement des données stratégiques...</div>;
@@ -68,6 +70,13 @@ const Dashboard: React.FC = () => {
       }
     }
   };
+
+  const tabButtonClasses = (isActive: boolean) => cn(
+    'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+    isActive
+      ? 'bg-white text-blue-700 shadow-sm'
+      : 'text-slate-600 hover:bg-slate-200/50'
+  );
 
   return (
     <motion.div
@@ -109,7 +118,16 @@ const Dashboard: React.FC = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-            <SalesTrendChart data={stats.salesTrendData} />
+            <div className="flex justify-end mb-4">
+                <div className="bg-slate-100 p-1 rounded-lg inline-flex items-center space-x-1">
+                    <button className={tabButtonClasses(chartPeriod === 'weekly')} onClick={() => setChartPeriod('weekly')}>7 jours</button>
+                    <button className={tabButtonClasses(chartPeriod === 'monthly')} onClick={() => setChartPeriod('monthly')}>30 jours</button>
+                </div>
+            </div>
+            <SalesTrendChart 
+                data={stats.salesTrendData} 
+                title={`Tendance des Ventes (${chartPeriod === 'weekly' ? '7 derniers jours' : '30 derniers jours'})`}
+            />
         </div>
         <RecentSales />
       </div>

@@ -4,6 +4,7 @@ export interface Product {
   barcode: string;
   price: number;
   stock: number;
+  supplierId?: string;
 }
 
 export interface CartItem extends Product {
@@ -44,5 +45,15 @@ export interface Expense {
   description: string;
   amount: number;
   category: string;
+  createdAt: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
   createdAt: string;
 }

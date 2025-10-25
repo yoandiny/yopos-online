@@ -5,6 +5,7 @@ import { formatCurrency } from '../../lib/utils';
 import { motion } from 'framer-motion';
 
 interface SalesTrendChartProps {
+  title: string;
   data: { date: string; total: number }[];
 }
 
@@ -13,7 +14,7 @@ const itemVariants = {
   visible: { y: 0, opacity: 1 }
 };
 
-const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ data }) => {
+const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ title, data }) => {
   const option = {
     tooltip: {
       trigger: 'axis',
@@ -90,7 +91,7 @@ const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ data }) => {
     <motion.div variants={itemVariants}>
       <Card className="h-full">
         <CardHeader>
-          <h3 className="text-lg font-semibold">Tendance des Ventes (7 derniers jours)</h3>
+          <h3 className="text-lg font-semibold">{title}</h3>
         </CardHeader>
         <CardContent>
           <ReactECharts option={option} style={{ height: '300px', width: '100%' }} />
