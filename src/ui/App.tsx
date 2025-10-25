@@ -11,7 +11,7 @@ import CashRegister from './pages/CashRegister';
 import Products from './pages/Products';
 import Sales from './pages/Sales';
 import Stock from './pages/Stock';
-import { Expenses } from './pages/Expenses';
+import Expenses  from './pages/Expenses';
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
