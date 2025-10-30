@@ -1,14 +1,32 @@
 import { db } from '../lib/db';
 import api from '../lib/api';
-import { useAuth } from '../contexts/AuthContext';
+import { authState } from './authService';
 
 const tablesToSync = ['products', 'sales', 'stockMovements', 'expenses', 'suppliers'];
+let syncTimeout: number | null = null;
+
+/**
+ * Debounced version of the main sync function.
+ * This prevents too many API calls in a short amount of time.
+ */
+export const syncDatabase = () => {
+  if (syncTimeout) {
+    clearTimeout(syncTimeout);
+  }
+
+  syncTimeout = window.setTimeout(async () => {
+    console.log("Starting debounced database synchronization...");
+    await pushChanges();
+    console.log("Debounced database synchronization finished.");
+    syncTimeout = null;
+  }, 3000); // Debounce for 3 seconds
+};
 
 /**
  * Pushes all pending local changes to the remote API.
  */
 async function pushChanges() {
-  const { company, pos } = useAuth.getState();
+  const { company, pos } = authState.getAuth();
   if (!company || !pos) {
     console.warn("Sync skipped: user not authenticated.");
     return;
@@ -26,7 +44,7 @@ async function pushChanges() {
   }
 
   if (!hasChanges) {
-    console.log("Sync: No pending changes to push.");
+    // console.log("Sync: No pending changes to push.");
     return;
   }
 
@@ -41,17 +59,17 @@ async function pushChanges() {
 
     if (response.status === 200) {
       console.log("Sync: Push successful. Updating local status.");
-      // On success, update local status
       await db.transaction('rw', ...tablesToSync.map(t => db.table(t)), async () => {
         for (const tableName of Object.keys(changes)) {
           const items = changes[tableName];
           for (const item of items) {
+            const primaryKey = item.id;
+            if (!primaryKey) continue; // Safety check
+
             if (item._deleted) {
-              // If item was marked for deletion and sync was successful, permanently delete it locally
-              await db.table(tableName).delete(item.id || item.movementId);
+              await db.table(tableName).delete(primaryKey);
             } else {
-              // Otherwise, just mark it as synced
-              await db.table(tableName).where({ id: item.id }).modify({ syncStatus: 'synced' });
+              await db.table(tableName).update(primaryKey, { syncStatus: 'synced' });
             }
           }
         }
@@ -62,14 +80,3 @@ async function pushChanges() {
     // Optionally, mark items as 'error' to retry later
   }
 }
-
-/**
- * Main synchronization function.
- * For now, it only pushes local changes. Pulling can be added later.
- */
-export const syncDatabase = async () => {
-  console.log("Starting database synchronization...");
-  await pushChanges();
-  // await pullChanges(); // Future implementation
-  console.log("Database synchronization finished.");
-};

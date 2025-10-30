@@ -108,24 +108,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [updateEntity]);
   
   const addSale = useCallback(async (saleData: Omit<Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => {
-    await addEntity<Sale>('sales', saleData, 'sale');
+    if (!companyId || !posId) {
+        alert("Session invalide. Impossible d'enregistrer la vente.");
+        return;
+    }
+
     try {
-        await db.transaction('rw', db.products, async () => {
+        await db.transaction('rw', db.sales, db.products, async () => {
+            const now = new Date().toISOString();
+            const saleId = `sale_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            const newSale: Sale = {
+                ...saleData,
+                id: saleId,
+                companyId,
+                posId,
+                createdAt: now,
+                updatedAt: now,
+                syncStatus: 'pending',
+                _deleted: false,
+            };
+            await db.sales.add(newSale);
+
             for (const item of saleData.items) {
-                await db.products.where('id').equals(item.id).modify(product => {
-                    product.stock -= item.quantity;
-                    product.updatedAt = new Date().toISOString();
-                    product.syncStatus = 'pending';
-                });
+                const product = await db.products.get(item.id);
+                if (product) {
+                    const newStock = product.stock - item.quantity;
+                    await db.products.update(item.id, {
+                        stock: newStock,
+                        updatedAt: now,
+                        syncStatus: 'pending'
+                    });
+                } else {
+                    console.warn(`Product with id ${item.id} not found during sale processing.`);
+                }
             }
         });
+
         clearCart();
-        syncDatabase();
+        syncDatabase(); // Trigger sync AFTER the transaction is complete
+        
     } catch (error) {
-        console.error("Failed to process sale stock updates:", error);
-        alert("Une erreur est survenue lors de la mise à jour des stocks après la vente.");
+        console.error("Failed to process sale:", error);
+        alert("Une erreur est survenue lors de l'enregistrement de la vente.");
     }
-  }, [addEntity, clearCart]);
+  }, [companyId, posId, clearCart]);
 
   const addProduct = useCallback((productData) => addEntity<Product>('products', productData, 'prod'), [addEntity]);
   const updateProduct = useCallback((id, updates) => updateEntity('products', id, updates), [updateEntity]);

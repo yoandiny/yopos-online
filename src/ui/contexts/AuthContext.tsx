@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Company, PointOfSale } from '../types';
+import { authState } from '../services/authService';
 
 interface AuthContextType {
   company: Company | null;
@@ -15,6 +16,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [company, setCompany] = useLocalStorage<Company | null>('session:company', null);
   const [pos, setPos] = useLocalStorage<PointOfSale | null>('session:pos', null);
+
+  useEffect(() => {
+    authState.setAuth(company, pos);
+  }, [company, pos]);
 
   const login = (companyName: string, posName: string) => {
     // In a real app, you'd fetch or verify these against a remote DB.
