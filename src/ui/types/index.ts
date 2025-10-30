@@ -6,6 +6,7 @@ interface BaseEntity {
   createdAt: string;
   updatedAt: string;
   syncStatus: 'synced' | 'pending' | 'error';
+  _deleted?: boolean; // Flag for soft deletion
 }
 
 export interface Product extends BaseEntity {
@@ -16,7 +17,7 @@ export interface Product extends BaseEntity {
   supplierId?: string;
 }
 
-export interface CartItem extends Omit<Product, 'syncStatus' | 'companyId' | 'posId' | 'createdAt' | 'updatedAt'> {
+export interface CartItem extends Omit<Product, 'syncStatus' | 'companyId' | 'posId' | 'createdAt' | 'updatedAt' | '_deleted'> {
   quantity: number;
 }
 
@@ -49,6 +50,7 @@ export interface StockMovement {
   reason: string;
   createdAt: string;
   syncStatus: 'synced' | 'pending' | 'error';
+  _deleted?: boolean;
 }
 
 export interface Expense extends BaseEntity {

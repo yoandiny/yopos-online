@@ -1,104 +1,75 @@
-import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import { db } from '../lib/db';
+import api from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
-let supabase: SupabaseClient | null = null;
-
-// --- PLACEHOLDER: Will be implemented when Supabase is connected ---
-// This file contains the structure for data synchronization.
-// The actual logic is commented out and will be implemented
-// once you connect your Supabase project.
+const tablesToSync = ['products', 'sales', 'stockMovements', 'expenses', 'suppliers'];
 
 /**
- * Initializes the Supabase client.
- * This should be called once when the application starts.
+ * Pushes all pending local changes to the remote API.
  */
-export const initializeSupabase = (url: string, anonKey: string) => {
-  if (!url || !anonKey) {
-    console.warn("Supabase URL or anon key is missing. Sync service is disabled.");
+async function pushChanges() {
+  const { company, pos } = useAuth.getState();
+  if (!company || !pos) {
+    console.warn("Sync skipped: user not authenticated.");
     return;
   }
-  supabase = createClient(url, anonKey);
-  console.log("Supabase client initialized. Sync service is ready.");
-};
 
-/**
- * Pushes pending changes from a local Dexie table to a remote Supabase table.
- * @param tableName The name of the table to sync (e.g., 'products').
- */
-async function pushChanges<T extends { id: string }>(tableName: string) {
-  if (!supabase) return;
+  const changes: { [key: string]: any[] } = {};
+  let hasChanges = false;
 
-  const pendingItems = await db.table(tableName).where('syncStatus').equals('pending').toArray();
-  
-  if (pendingItems.length === 0) {
-    return; // Nothing to push
+  for (const tableName of tablesToSync) {
+    const pendingItems = await db.table(tableName).where('syncStatus').equals('pending').toArray();
+    if (pendingItems.length > 0) {
+      changes[tableName] = pendingItems;
+      hasChanges = true;
+    }
   }
 
-  console.log(`Pushing ${pendingItems.length} pending changes for ${tableName}...`);
-  
-  // const { error } = await supabase.from(tableName).upsert(pendingItems);
+  if (!hasChanges) {
+    console.log("Sync: No pending changes to push.");
+    return;
+  }
 
-  // if (error) {
-  //   console.error(`Error pushing ${tableName} changes:`, error);
-  //   // Optionally mark items as 'error'
-  // } else {
-  //   const idsToUpdate = pendingItems.map(item => item.id);
-  //   await db.table(tableName).where('id').anyOf(idsToUpdate).modify({ syncStatus: 'synced' });
-  //   console.log(`Successfully pushed ${tableName} changes.`);
-  // }
-}
+  console.log("Sync: Pushing pending changes...", changes);
 
-/**
- * Pulls new or updated records from a Supabase table to the local Dexie table.
- * @param tableName The name of the table to sync.
- */
-async function pullChanges(tableName: string) {
-    if (!supabase) return;
+  try {
+    const response = await api.post('/sync/push', {
+      companyId: company.id,
+      posId: pos.id,
+      changes,
+    });
 
-    // const lastSyncTime = await getLastSyncTime(tableName);
-    // console.log(`Pulling changes for ${tableName} since ${lastSyncTime}`);
-    
-    // const { data, error } = await supabase
-    //     .from(tableName)
-    //     .select('*')
-    //     .gt('updated_at', lastSyncTime); // Assumes you have 'updated_at' on your Supabase table
-
-    // if (error) {
-    //     console.error(`Error pulling ${tableName} changes:`, error);
-    // } else if (data && data.length > 0) {
-    //     await db.table(tableName).bulkPut(data);
-    //     await setLastSyncTime(tableName, new Date().toISOString());
-    //     console.log(`Successfully pulled and stored ${data.length} items for ${tableName}.`);
-    // }
+    if (response.status === 200) {
+      console.log("Sync: Push successful. Updating local status.");
+      // On success, update local status
+      await db.transaction('rw', ...tablesToSync.map(t => db.table(t)), async () => {
+        for (const tableName of Object.keys(changes)) {
+          const items = changes[tableName];
+          for (const item of items) {
+            if (item._deleted) {
+              // If item was marked for deletion and sync was successful, permanently delete it locally
+              await db.table(tableName).delete(item.id || item.movementId);
+            } else {
+              // Otherwise, just mark it as synced
+              await db.table(tableName).where({ id: item.id }).modify({ syncStatus: 'synced' });
+            }
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Sync: Error pushing changes:", error);
+    // Optionally, mark items as 'error' to retry later
+  }
 }
 
 /**
  * Main synchronization function.
- * Triggers push and pull operations for all relevant tables.
+ * For now, it only pushes local changes. Pulling can be added later.
  */
 export const syncDatabase = async () => {
-    if (!supabase) {
-        console.log("Sync skipped: Supabase not initialized.");
-        return;
-    }
-    console.log("Starting database synchronization...");
-    
-    const tablesToSync = ['products', 'suppliers', 'expenses', 'sales', 'stockMovements'];
-
-    for (const table of tablesToSync) {
-        await pushChanges(table);
-        // await pullChanges(table); // Pull changes after pushing
-    }
-
-    console.log("Database synchronization finished.");
+  console.log("Starting database synchronization...");
+  await pushChanges();
+  // await pullChanges(); // Future implementation
+  console.log("Database synchronization finished.");
 };
-
-// --- Helper functions for managing sync timestamps (placeholders) ---
-async function getLastSyncTime(tableName: string): Promise<string> {
-    // In a real implementation, you'd store this in localStorage or a dedicated Dexie table.
-    return localStorage.getItem(`lastSync:${tableName}`) || new Date(0).toISOString();
-}
-
-async function setLastSyncTime(tableName: string, time: string) {
-    localStorage.setItem(`lastSync:${tableName}`, time);
-}

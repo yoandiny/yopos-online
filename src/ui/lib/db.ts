@@ -10,21 +10,22 @@ export class KessDB extends Dexie {
 
   constructor() {
     super('KessDB');
+    this.version(7).stores({
+      products: 'id, [companyId+posId], name, barcode, supplierId, syncStatus, _deleted',
+      sales: 'id, [companyId+posId], createdAt, syncStatus, _deleted',
+      stockMovements: '++id, movementId, [companyId+posId], productId, createdAt, syncStatus, _deleted',
+      expenses: 'id, [companyId+posId], createdAt, category, syncStatus, _deleted',
+      suppliers: 'id, [companyId+posId], name, syncStatus, _deleted',
+    });
+    
+    // Keep previous versions for migration path
     this.version(6).stores({
       products: 'id, [companyId+posId], name, barcode, supplierId, syncStatus',
       sales: 'id, [companyId+posId], createdAt, syncStatus',
       stockMovements: '++id, movementId, [companyId+posId], productId, createdAt, syncStatus',
       expenses: 'id, [companyId+posId], createdAt, category, syncStatus',
       suppliers: 'id, [companyId+posId], name, syncStatus',
-    }).upgrade(tx => {
-        // This upgrade function will only run if the user had version 5.
-        // For new users, version 6 is created directly.
-        // We don't need to migrate data for this specific change,
-        // as the new fields will be populated by the app logic going forward.
-        console.log("Upgrading database to version 6 for multi-tenancy.");
     });
-    
-    // Keep previous versions for migration path
     this.version(5).stores({
       products: 'id, name, barcode, supplierId',
       sales: 'id, createdAt',
