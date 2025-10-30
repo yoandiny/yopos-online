@@ -1,8 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, ShoppingCart, Package, BarChart, History, BanknoteArrowUp, Truck } from 'lucide-react';
+import { LayoutGrid, ShoppingCart, Package, BarChart, History, BanknoteArrowUp, Truck, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Logo from '../../assets/logo.png';
+import { useAuth } from '../../contexts/AuthContext';
+import Button from '../ui/Button';
 
 const navItems = [
   { to: '/', icon: LayoutGrid, label: 'Tableau' },
@@ -15,14 +17,24 @@ const navItems = [
 ];
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  
+  const { company, pos, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-100">
       <div className="sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <header className="bg-white/70 backdrop-blur-lg rounded-xl shadow-sm p-6 mb-6 item-center flex justify-center">
-          <img src={Logo} className=" w-20 h-20 align-middle "/>
+        <header className="bg-white/70 backdrop-blur-lg rounded-xl shadow-sm p-4 mb-6 flex items-center justify-between">
+          <div className="flex items-center">
+            <img src={Logo} className="w-16 h-16 mr-4" alt="logo"/>
+            <div>
+              <h1 className="text-lg font-bold text-slate-800">{company?.name}</h1>
+              <p className="text-sm text-slate-500">{pos?.name}</p>
+            </div>
+          </div>
+          <Button variant="secondary" size="sm" onClick={logout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Changer
+          </Button>
         </header>
 
         {/* Navigation */}

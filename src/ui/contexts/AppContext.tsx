@@ -1,8 +1,10 @@
-import  { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { Product, Sale, CartItem, StockMovement, Expense, Supplier } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useAuth } from './AuthContext';
+import { syncDatabase } from '../services/syncService';
 
 interface AppContextType {
   products: Product[];
@@ -10,15 +12,15 @@ interface AppContextType {
   stockMovements: StockMovement[];
   expenses: Expense[];
   suppliers: Supplier[];
-  addSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => Promise<void>;
-  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  addSale: (sale: Omit<Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus'>) => Promise<void>;
+  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus'>) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Omit<Product, 'id'>>) => Promise<void>;
   deleteProduct: (productId: string) => Promise<void>;
   adjustStock: (productId: string, quantityChange: number, reason: string) => Promise<void>;
-  addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus'>) => Promise<void>;
   updateExpense: (id: string, updates: Partial<Omit<Expense, 'id'>>) => Promise<void>;
   deleteExpense: (expenseId: string) => Promise<void>;
-  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt'>) => Promise<void>;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus'>) => Promise<void>;
   updateSupplier: (id: string, updates: Partial<Omit<Supplier, 'id' | 'createdAt'>>) => Promise<void>;
   deleteSupplier: (supplierId: string) => Promise<void>;
   cart: CartItem[];
@@ -35,15 +37,32 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const products = useLiveQuery(() => db.products.toArray(), []);
-  const sales = useLiveQuery(() => db.sales.orderBy('createdAt').reverse().toArray(), []);
-  const stockMovements = useLiveQuery(() => db.stockMovements.orderBy('createdAt').reverse().toArray(), []);
-  const expenses = useLiveQuery(() => db.expenses.orderBy('createdAt').reverse().toArray(), []);
-  const suppliers = useLiveQuery(() => db.suppliers.orderBy('name').toArray(), []);
-  
+  const { company, pos } = useAuth();
+  const companyId = company?.id;
+  const posId = pos?.id;
+
+  const liveQueryDeps = [companyId, posId];
+
+  const products = useLiveQuery(() => companyId && posId ? db.products.where({ companyId, posId }).toArray() : [], liveQueryDeps, []);
+  const sales = useLiveQuery(() => companyId && posId ? db.sales.where({ companyId, posId }).orderBy('createdAt').reverse().toArray() : [], liveQueryDeps, []);
+  const stockMovements = useLiveQuery(() => companyId && posId ? db.stockMovements.where({ companyId, posId }).orderBy('createdAt').reverse().toArray() : [], liveQueryDeps, []);
+  const expenses = useLiveQuery(() => companyId && posId ? db.expenses.where({ companyId, posId }).orderBy('createdAt').reverse().toArray() : [], liveQueryDeps, []);
+  const suppliers = useLiveQuery(() => companyId && posId ? db.suppliers.where({ companyId, posId }).orderBy('name').toArray() : [], liveQueryDeps, []);
+
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [isFirstLaunch, setIsFirstLaunch] = useLocalStorage<boolean>('isFirstLaunch', true);
-  const [initialBalance, setInitialBalance] = useLocalStorage<number>('initialBalance', 0);
+  const [isFirstLaunch, setIsFirstLaunch] = useLocalStorage<boolean>(`isFirstLaunch:${companyId}:${posId}`, true);
+  const [initialBalance, setInitialBalance] = useLocalStorage<number>(`initialBalance:${companyId}:${posId}`, 0);
+
+  // --- Sync Effect ---
+  useEffect(() => {
+    // Trigger an initial sync when the context is ready
+    syncDatabase();
+
+    // Set up periodic sync
+    const interval = setInterval(syncDatabase, 5 * 60 * 1000); // Sync every 5 minutes
+    return () => clearInterval(interval);
+  }, [companyId, posId]);
+
 
   const setupInitialBalance = useCallback((balance: number) => {
     setInitialBalance(balance);
@@ -58,136 +77,116 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prevCart, { ...product, quantity: 1 }];
+      const { syncStatus, companyId, posId, createdAt, updatedAt, ...cartProduct } = product;
+      return [...prevCart, { ...cartProduct, quantity: 1 }];
     });
   }, []);
 
-  const removeFromCart = useCallback((productId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== productId));
-  }, []);
-
+  const removeFromCart = useCallback((productId: string) => setCart(prevCart => prevCart.filter(item => item.id !== productId)), []);
   const updateCartQuantity = useCallback((productId: string, quantity: number) => {
-    setCart(prevCart =>
-      prevCart.map(item => (item.id === productId ? { ...item, quantity } : item))
-        .filter(item => item.quantity > 0)
-    );
+    setCart(prevCart => prevCart.map(item => (item.id === productId ? { ...item, quantity } : item)).filter(item => item.quantity > 0));
   }, []);
+  const clearCart = useCallback(() => setCart([]), []);
 
-  const clearCart = useCallback(() => {
-    setCart([]);
-  }, []);
-
-  const addSale = useCallback(async (saleData: Omit<Sale, 'id' | 'createdAt'>) => {
-    const newSale: Sale = {
-      ...saleData,
-      id: `sale_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
+  const addEntity = useCallback(async <T>(tableName: string, data: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus'>, prefix: string): Promise<string> => {
+    if (!companyId || !posId) throw new Error("Session invalide.");
+    const now = new Date().toISOString();
+    const id = `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newEntity = {
+      ...data,
+      id,
+      companyId,
+      posId,
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'pending' as const,
     };
+    await db.table(tableName).add(newEntity);
+    syncDatabase(); // Trigger sync
+    return id;
+  }, [companyId, posId]);
 
-    try {
-      await db.transaction('rw', db.sales, db.products, async () => {
-        await db.sales.add(newSale);
-        for (const item of newSale.items) {
-          await db.products.where('id').equals(item.id).modify(product => {
-            product.stock -= item.quantity;
-          });
-        }
-      });
-      clearCart();
-    } catch (error) {
-      console.error("Failed to process sale:", error);
-      alert("Une erreur est survenue lors de l'enregistrement de la vente.");
-    }
-  }, [clearCart]);
-
-  const addProduct = useCallback(async (productData: Omit<Product, 'id'>) => {
-    const newProduct: Product = {
-      ...productData,
-      id: `prod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    };
-    await db.products.add(newProduct);
+  const updateEntity = useCallback(async (tableName: string, id: string, updates: any) => {
+    const updateData = { ...updates, updatedAt: new Date().toISOString(), syncStatus: 'pending' as const };
+    await db.table(tableName).update(id, updateData);
+    syncDatabase(); // Trigger sync
   }, []);
   
-  const updateProduct = useCallback(async (id: string, updates: Partial<Omit<Product, 'id'>>) => {
-    await db.products.update(id, updates);
-  }, []);
+  const addSale = useCallback(async (saleData: Omit<Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus'>) => {
+    const newSaleId = await addEntity<Sale>('sales', saleData, 'sale');
+    try {
+        await db.transaction('rw', db.products, async () => {
+            for (const item of saleData.items) {
+                await db.products.where('id').equals(item.id).modify(product => {
+                    product.stock -= item.quantity;
+                    product.updatedAt = new Date().toISOString();
+                    product.syncStatus = 'pending';
+                });
+            }
+        });
+        clearCart();
+        syncDatabase();
+    } catch (error) {
+        console.error("Failed to process sale stock updates:", error);
+        alert("Une erreur est survenue lors de la mise à jour des stocks après la vente.");
+    }
+  }, [addEntity, clearCart]);
 
+  const addProduct = useCallback((productData) => addEntity<Product>('products', productData, 'prod'), [addEntity]);
+  const updateProduct = useCallback((id, updates) => updateEntity('products', id, updates), [updateEntity]);
   const deleteProduct = useCallback(async (productId: string) => {
-    await db.products.delete(productId);
+    alert("La suppression physique sera gérée par la synchronisation. Pour l'instant, nous ne faisons rien.");
+    // In a sync-enabled app, you might mark as deleted instead of actually deleting.
+    // await db.products.delete(productId);
   }, []);
 
   const adjustStock = useCallback(async (productId: string, quantityChange: number, reason: string) => {
+    if (!companyId || !posId) throw new Error("Session invalide.");
     try {
       await db.transaction('rw', db.products, db.stockMovements, async () => {
         const product = await db.products.get(productId);
         if (!product) throw new Error("Produit non trouvé");
         
         const newStock = product.stock + quantityChange;
-        if (newStock < 0) {
-          throw new Error("Le stock ne peut pas être négatif.");
-        }
+        if (newStock < 0) throw new Error("Le stock ne peut pas être négatif.");
 
-        await db.products.update(productId, { stock: newStock });
+        await db.products.update(productId, { stock: newStock, updatedAt: new Date().toISOString(), syncStatus: 'pending' });
 
         const movement: StockMovement = {
+          movementId: `mov_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           productId,
+          companyId,
+          posId,
           quantityChange,
           reason,
           createdAt: new Date().toISOString(),
+          syncStatus: 'pending',
         };
         await db.stockMovements.add(movement);
       });
+      syncDatabase();
     } catch (error) {
       console.error("Failed to adjust stock:", error);
       alert(`Une erreur est survenue: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
-  }, []);
+  }, [companyId, posId]);
 
-  const addExpense = useCallback(async (expenseData: Omit<Expense, 'id' | 'createdAt'>) => {
-    const newExpense: Expense = {
-      ...expenseData,
-      id: `exp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-    };
-    await db.expenses.add(newExpense);
-  }, []);
-
-  const updateExpense = useCallback(async (id: string, updates: Partial<Omit<Expense, 'id'>>) => {
-    await db.expenses.update(id, updates);
-  }, []);
-
+  const addExpense = useCallback((expenseData) => addEntity<Expense>('expenses', expenseData, 'exp'), [addEntity]);
+  const updateExpense = useCallback((id, updates) => updateEntity('expenses', id, updates), [updateEntity]);
   const deleteExpense = useCallback(async (expenseId: string) => {
-    await db.expenses.delete(expenseId);
+    alert("La suppression sera gérée par la synchronisation.");
+    // await db.expenses.delete(expenseId);
   }, []);
 
-  const addSupplier = useCallback(async (supplierData: Omit<Supplier, 'id' | 'createdAt'>) => {
-    const newSupplier: Supplier = {
-      ...supplierData,
-      id: `sup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-    };
-    await db.suppliers.add(newSupplier);
-  }, []);
-
-  const updateSupplier = useCallback(async (id: string, updates: Partial<Omit<Supplier, 'id' | 'createdAt'>>) => {
-    await db.suppliers.update(id, updates);
-  }, []);
-
+  const addSupplier = useCallback((supplierData) => addEntity<Supplier>('suppliers', supplierData, 'sup'), [addEntity]);
+  const updateSupplier = useCallback((id, updates) => updateEntity('suppliers', id, updates), [updateEntity]);
   const deleteSupplier = useCallback(async (supplierId: string) => {
-    await db.transaction('rw', db.suppliers, db.products, async () => {
-        await db.suppliers.delete(supplierId);
-        const productsToUpdate = await db.products.where({ supplierId }).toArray();
-        for (const product of productsToUpdate) {
-            await db.products.update(product.id, { supplierId: undefined });
-        }
-    });
-    alert('Fournisseur supprimé et produits déliés avec succès.');
+    alert("La suppression sera gérée par la synchronisation.");
+    // await db.suppliers.delete(supplierId);
   }, []);
 
-  const cartTotal = useMemo(() => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
-  }, [cart]);
+  const cartTotal = useMemo(() => cart.reduce((total, item) => total + item.price * item.quantity, 0), [cart]);
 
   const value = {
     products: products || [],
@@ -195,26 +194,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     stockMovements: stockMovements || [],
     expenses: expenses || [],
     suppliers: suppliers || [],
-    addSale,
-    addProduct,
-    updateProduct,
-    deleteProduct,
-    adjustStock,
-    addExpense,
-    updateExpense,
-    deleteExpense,
-    addSupplier,
-    updateSupplier,
-    deleteSupplier,
-    cart,
-    addToCart,
-    removeFromCart,
-    updateCartQuantity,
-    clearCart,
-    cartTotal,
-    isFirstLaunch,
-    initialBalance,
-    setupInitialBalance,
+    addSale, addProduct, updateProduct, deleteProduct, adjustStock,
+    addExpense, updateExpense, deleteExpense,
+    addSupplier, updateSupplier, deleteSupplier,
+    cart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartTotal,
+    isFirstLaunch, initialBalance, setupInitialBalance,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

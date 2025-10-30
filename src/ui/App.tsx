@@ -1,11 +1,13 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AppProvider, useAppContext } from './contexts/AppContext';
+import { useAuth } from './contexts/AuthContext';
 
 import SplashScreen from './components/common/SplashScreen';
 import AppLayout from './components/layout/AppLayout';
 import InitialBalanceModal from './components/common/InitialBalanceModal';
+import Auth from './pages/Auth';
 
 import Dashboard from './pages/Dashboard';
 import CashRegister from './pages/CashRegister';
@@ -40,10 +42,9 @@ const AppContent: React.FC = () => {
     const timer = setTimeout(() => {
       setLoading(false);
       if (isFirstLaunch) {
-        // A small delay to let the main UI render before showing the modal
         setTimeout(() => setIsBalanceModalOpen(true), 200);
       }
-    }, 2000); // Keep existing splash screen time
+    }, 2000);
     return () => clearTimeout(timer);
   }, [isFirstLaunch]);
 
@@ -54,19 +55,20 @@ const AppContent: React.FC = () => {
 
   return (
     <>
-      <AnimatePresence>
-        {loading && <SplashScreen />}
-      </AnimatePresence>
+      <AnimatePresence>{loading && <SplashScreen />}</AnimatePresence>
       {!loading && <AppRoutes />}
-      <InitialBalanceModal
-        isOpen={isBalanceModalOpen}
-        onSave={handleSaveBalance}
-      />
+      <InitialBalanceModal isOpen={isBalanceModalOpen} onSave={handleSaveBalance} />
     </>
   );
 };
 
 const App: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Auth />;
+  }
+
   return (
     <AppProvider>
       <AppContent />

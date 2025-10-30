@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
+    "@supabase/supabase-js": "^2.77.0",
     "axios": "^1.9.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
