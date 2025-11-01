@@ -1,23 +1,20 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
-import { Product, Sale, CartItem, StockMovement, Expense, Supplier } from '../types';
+import { Product, Sale, CartItem, StockMovement, Expense, Supplier, Customer, CreditPayment, PaymentMethod } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAuth } from './AuthContext';
 import { syncDatabase } from '../services/syncService';
 
 // --- Internal Helper Functions ---
 
-/**
- * Creates a new entity in the database with standard metadata.
- */
-const addEntity = async &lt;T extends { id: string }&gt;(
+const addEntity = async <T extends { id: string }>(
   tableName: string,
-  data: Omit&lt;T, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;,
+  data: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>,
   prefix: string,
   companyId: string,
   posId: string
-): Promise&lt;string&gt; => {
+): Promise<string> => {
   const now = new Date().toISOString();
   const id = `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const newEntity = {
@@ -35,18 +32,12 @@ const addEntity = async &lt;T extends { id: string }&gt;(
   return id;
 };
 
-/**
- * Updates an existing entity in the database.
- */
 const updateEntity = async (tableName: string, id: string, updates: any) => {
   const updateData = { ...updates, updatedAt: new Date().toISOString(), syncStatus: 'pending' as const };
   await db.table(tableName).update(id, updateData);
   syncDatabase();
 };
 
-/**
- * Soft deletes an entity by marking it as deleted.
- */
 const deleteEntity = async (tableName: string, id: string) => {
   await updateEntity(tableName, id, { _deleted: true });
 };
@@ -60,36 +51,50 @@ interface AppContextType {
   stockMovements: StockMovement[];
   expenses: Expense[];
   suppliers: Supplier[];
-  addSale: (sale: Omit&lt;Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => Promise&lt;void&gt;;
-  addProduct: (product: Omit&lt;Product, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => Promise&lt;void&gt;;
-  updateProduct: (id: string, updates: Partial&lt;Omit&lt;Product, 'id'&gt;&gt;) => Promise&lt;void&gt;;
-  deleteProduct: (productId: string) => Promise&lt;void&gt;;
-  adjustStock: (productId: string, quantityChange: number, reason: string) => Promise&lt;void&gt;;
-  addExpense: (expense: Omit&lt;Expense, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => Promise&lt;void&gt;;
-  updateExpense: (id: string, updates: Partial&lt;Omit&lt;Expense, 'id'&gt;&gt;) => Promise&lt;void&gt;;
-  deleteExpense: (expenseId: string) => Promise&lt;void&gt;;
-  addSupplier: (supplier: Omit&lt;Supplier, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => Promise&lt;void&gt;;
-  updateSupplier: (id: string, updates: Partial&lt;Omit&lt;Supplier, 'id' | 'createdAt'&gt;&gt;) => Promise&lt;void&gt;;
-  deleteSupplier: (supplierId: string) => Promise&lt;void&gt;;
+  customers: Customer[];
+  creditPayments: CreditPayment[];
+
+  addSale: (sale: Omit<Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => Promise<void>;
+  
+  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => Promise<string>;
+  updateProduct: (id: string, updates: Partial<Omit<Product, 'id'>>)=> Promise<void>;
+  deleteProduct: (productId: string) => Promise<void>;
+  
+  adjustStock: (productId: string, quantityChange: number, reason: string) => Promise<void>;
+  
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => Promise<string>;
+  updateExpense: (id: string, updates: Partial<Omit<Expense, 'id'>>) => Promise<void>;
+  deleteExpense: (expenseId: string) => Promise<void>;
+  
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => Promise<string>;
+  updateSupplier: (id: string, updates: Partial<Omit<Supplier, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteSupplier: (supplierId: string) => Promise<void>;
+
+  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => Promise<string>;
+  updateCustomer: (id: string, updates: Partial<Omit<Customer, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteCustomer: (customerId: string) => Promise<void>;
+
+  addCreditPayment: (saleId: string, amount: number, paymentMethod: Exclude<PaymentMethod, 'credit'>) => Promise<void>;
+
   cart: CartItem[];
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
+  
   isFirstLaunch: boolean;
   initialBalance: number;
   setupInitialBalance: (balance: number) => void;
 }
 
-const AppContext = createContext&lt;AppContextType | undefined&gt;(undefined);
+const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { company, pos } = useAuth();
   const companyId = company?.id;
   const posId = pos?.id;
 
-  // --- Live Queries for Data ---
   const liveQueryDeps = useMemo(() => [companyId, posId], [companyId, posId]);
 
   const products = useLiveQuery(() => companyId && posId ? db.products.where({ companyId, posId }).filter(p => !p._deleted).toArray() : [], liveQueryDeps, []);
@@ -97,20 +102,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const stockMovements = useLiveQuery(() => companyId && posId ? db.stockMovements.where({ companyId, posId }).filter(sm => !sm._deleted).orderBy('createdAt').reverse().toArray() : [], liveQueryDeps, []);
   const expenses = useLiveQuery(() => companyId && posId ? db.expenses.where({ companyId, posId }).filter(e => !e._deleted).orderBy('createdAt').reverse().toArray() : [], liveQueryDeps, []);
   const suppliers = useLiveQuery(() => companyId && posId ? db.suppliers.where({ companyId, posId }).filter(s => !s._deleted).orderBy('name').toArray() : [], liveQueryDeps, []);
-  
-  // --- Cart State Management ---
-  const [cart, setCart] = useState&lt;CartItem[]&gt;([]);
+  const customers = useLiveQuery(() => companyId && posId ? db.customers.where({ companyId, posId }).filter(c => !c._deleted).orderBy('name').toArray() : [], liveQueryDeps, []);
+  const creditPayments = useLiveQuery(() => companyId && posId ? db.creditPayments.where({ companyId, posId }).filter(cp => !cp._deleted).toArray() : [], liveQueryDeps, []);
+
+  const [cart, setCart] = useState<CartItem[]>([]);
   const cartTotal = useMemo(() => cart.reduce((total, item) => total + item.price * item.quantity, 0), [cart]);
 
   const addToCart = useCallback((product: Product) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
       if (existingItem) {
-        return prevCart.map(item =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
+        return prevCart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
       }
-      // Keep only necessary properties for the cart item
       const { name, price, stock, barcode, id, supplierId } = product;
       return [...prevCart, { name, price, stock, barcode, id, supplierId, quantity: 1 }];
     });
@@ -122,18 +125,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
   const clearCart = useCallback(() => setCart([]), []);
 
-  // --- Initial Setup State ---
-  const [isFirstLaunch, setIsFirstLaunch] = useLocalStorage&lt;boolean&gt;(`isFirstLaunch:${companyId}:${posId}`, true);
-  const [initialBalance, setInitialBalance] = useLocalStorage&lt;number&gt;(`initialBalance:${companyId}:${posId}`, 0);
+  const [isFirstLaunch, setIsFirstLaunch] = useLocalStorage<boolean>(`isFirstLaunch:${companyId}:${posId}`, true);
+  const [initialBalance, setInitialBalance] = useLocalStorage<number>(`initialBalance:${companyId}:${posId}`, 0);
 
   const setupInitialBalance = useCallback((balance: number) => {
     setInitialBalance(balance);
     setIsFirstLaunch(false);
   }, [setInitialBalance, setIsFirstLaunch]);
 
-  // --- Data Mutation Functions ---
-
-  const addSale = useCallback(async (saleData: Omit&lt;Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => {
+  const addSale = useCallback(async (saleData: Omit<Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => {
     if (!companyId || !posId) {
         alert("Session invalide. Impossible d'enregistrer la vente.");
         return;
@@ -165,16 +165,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                         syncStatus: 'pending'
                     });
                 } else {
-                    // This will abort the transaction
-                    throw new Error(`Produit "${item.name}" (ID: ${item.id}) non trouvé dans la base de données.`);
+                    throw new Error(`Produit "${item.name}" (ID: ${item.id}) non trouvé.`);
                 }
             }
         });
         clearCart();
-        syncDatabase(); // Trigger sync AFTER the transaction is complete
+        syncDatabase();
     } catch (error) {
         console.error("Échec du traitement de la vente:", error);
-        alert(`Une erreur est survenue lors de l'enregistrement de la vente: ${error instanceof Error ? error.message : String(error)}`);
+        alert(`Une erreur est survenue: ${error instanceof Error ? error.message : String(error)}`);
     }
   }, [companyId, posId, clearCart]);
 
@@ -190,7 +189,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         await db.products.update(productId, { stock: newStock, updatedAt: new Date().toISOString(), syncStatus: 'pending' });
 
-        const movement: Omit&lt;StockMovement, 'id'&gt; = {
+        const movement: Omit<StockMovement, 'id'> = {
           movementId: `mov_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           productId,
           companyId,
@@ -210,8 +209,43 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       throw error;
     }
   }, [companyId, posId]);
+
+  const addCreditPayment = useCallback(async (saleId: string, amount: number, paymentMethod: Exclude<PaymentMethod, 'credit'>) => {
+    if (!companyId || !posId) throw new Error("Session invalide.");
+    try {
+      await db.transaction('rw', db.creditPayments, db.sales, async () => {
+        const paymentId = `cp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const newPayment: Omit<CreditPayment, 'id'> = {
+          paymentId,
+          companyId,
+          posId,
+          saleId,
+          amount,
+          paymentMethod,
+          createdAt: new Date().toISOString(),
+          syncStatus: 'pending',
+          _deleted: false,
+        };
+        await db.creditPayments.add(newPayment);
+
+        const sale = await db.sales.get(saleId);
+        if (!sale) throw new Error("Vente non trouvée.");
+
+        const paymentsForSale = await db.creditPayments.where({ saleId }).toArray();
+        const totalPaid = paymentsForSale.reduce((sum, p) => sum + p.amount, 0);
+
+        if (totalPaid >= sale.total) {
+          await db.sales.update(saleId, { status: 'paid', syncStatus: 'pending', updatedAt: new Date().toISOString() });
+        }
+      });
+      syncDatabase();
+    } catch (error) {
+      console.error("Échec de l'ajout du paiement de crédit:", error);
+      alert(`Erreur: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }, [companyId, posId]);
   
-  // Generic CRUD wrappers
   const crudHandler = useCallback((tableName: string, prefix: string) => {
     if (!companyId || !posId) return null;
     return {
@@ -224,49 +258,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const productHandler = useMemo(() => crudHandler('products', 'prod'), [crudHandler]);
   const expenseHandler = useMemo(() => crudHandler('expenses', 'exp'), [crudHandler]);
   const supplierHandler = useMemo(() => crudHandler('suppliers', 'sup'), [crudHandler]);
+  const customerHandler = useMemo(() => crudHandler('customers', 'cust'), [crudHandler]);
 
-  // --- Context Value ---
   const value: AppContextType = useMemo(() => ({
     products: products || [],
     sales: sales || [],
     stockMovements: stockMovements || [],
     expenses: expenses || [],
     suppliers: suppliers || [],
+    customers: customers || [],
+    creditPayments: creditPayments || [],
     
-    // Cart
-    cart,
-    addToCart,
-    removeFromCart,
-    updateCartQuantity,
-    clearCart,
-    cartTotal,
-    
-    // Initial Setup
-    isFirstLaunch,
-    initialBalance,
-    setupInitialBalance,
-    
-    // Data Mutations
-    addSale,
-    adjustStock,
-    addProduct: (data) => productHandler?.add(data) as Promise&lt;void&gt;,
-    updateProduct: (id, updates) => productHandler?.update(id, updates) as Promise&lt;void&gt;,
-    deleteProduct: (id) => productHandler?.remove(id) as Promise&lt;void&gt;,
-    addExpense: (data) => expenseHandler?.add(data) as Promise&lt;void&gt;,
-    updateExpense: (id, updates) => expenseHandler?.update(id, updates) as Promise&lt;void&gt;,
-    deleteExpense: (id) => expenseHandler?.remove(id) as Promise&lt;void&gt;,
-    addSupplier: (data) => supplierHandler?.add(data) as Promise&lt;void&gt;,
-    updateSupplier: (id, updates) => supplierHandler?.update(id, updates) as Promise&lt;void&gt;,
-    deleteSupplier: (id) => supplierHandler?.remove(id) as Promise&lt;void&gt;,
-  }), [
-    products, sales, stockMovements, expenses, suppliers,
     cart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartTotal,
     isFirstLaunch, initialBalance, setupInitialBalance,
-    addSale, adjustStock,
-    productHandler, expenseHandler, supplierHandler
+    
+    addSale,
+    adjustStock,
+    addCreditPayment,
+    addProduct: (data) => productHandler?.add(data) as Promise<string>,
+    updateProduct: (id, updates) => productHandler?.update(id, updates) as Promise<void>,
+    deleteProduct: (id) => productHandler?.remove(id) as Promise<void>,
+    addExpense: (data) => expenseHandler?.add(data) as Promise<string>,
+    updateExpense: (id, updates) => expenseHandler?.update(id, updates) as Promise<void>,
+    deleteExpense: (id) => expenseHandler?.remove(id) as Promise<void>,
+    addSupplier: (data) => supplierHandler?.add(data) as Promise<string>,
+    updateSupplier: (id, updates) => supplierHandler?.update(id, updates) as Promise<void>,
+    deleteSupplier: (id) => supplierHandler?.remove(id) as Promise<void>,
+    addCustomer: (data) => customerHandler?.add(data) as Promise<string>,
+    updateCustomer: (id, updates) => customerHandler?.update(id, updates) as Promise<void>,
+    deleteCustomer: (id) => customerHandler?.remove(id) as Promise<void>,
+  }), [
+    products, sales, stockMovements, expenses, suppliers, customers, creditPayments,
+    cart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartTotal,
+    isFirstLaunch, initialBalance, setupInitialBalance,
+    addSale, adjustStock, addCreditPayment,
+    productHandler, expenseHandler, supplierHandler, customerHandler
   ]);
 
-  return &lt;AppContext.Provider value={value}&gt;{children}&lt;/AppContext.Provider&gt;;
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
 export const useAppContext = () => {

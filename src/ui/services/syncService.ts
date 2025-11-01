@@ -2,7 +2,7 @@ import { db } from '../lib/db';
 import api from '../lib/api';
 import { authState } from './authService';
 
-const tablesToSync = ['products', 'sales', 'stockMovements', 'expenses', 'suppliers'];
+const tablesToSync = ['products', 'sales', 'stockMovements', 'expenses', 'suppliers', 'customers', 'creditPayments'];
 let syncTimeout: number | null = null;
 
 /**
@@ -63,13 +63,19 @@ async function pushChanges() {
         for (const tableName of Object.keys(changes)) {
           const items = changes[tableName];
           for (const item of items) {
-            const primaryKey = item.id;
+            const primaryKey = item.id || item.paymentId; // Handle creditPayments which has paymentId as string key
             if (!primaryKey) continue; // Safety check
 
             if (item._deleted) {
-              await db.table(tableName).delete(primaryKey);
+              // For auto-incremented keys, we need to find the right record to delete
+              if (tableName === 'creditPayments' || tableName === 'stockMovements') {
+                 await db.table(tableName).where(tableName === 'creditPayments' ? 'paymentId' : 'movementId').equals(primaryKey).delete();
+              } else {
+                 await db.table(tableName).delete(primaryKey);
+              }
             } else {
-              await db.table(tableName).update(primaryKey, { syncStatus: 'synced' });
+              const updateKey = tableName === 'creditPayments' ? 'paymentId' : (tableName === 'stockMovements' ? 'movementId' : 'id');
+              await db.table(tableName).where(updateKey).equals(primaryKey).modify({ syncStatus: 'synced' });
             }
           }
         }

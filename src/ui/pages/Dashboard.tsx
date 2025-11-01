@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { formatCurrency, cn } from '../lib/utils';
-import { ShoppingCart, Wallet, TriangleAlert, Landmark } from 'lucide-react';
+import { ShoppingCart, Wallet, TriangleAlert, Landmark, HandCoins } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { subDays, isWithinInterval, startOfDay, endOfDay, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -11,11 +11,11 @@ import PopularProducts from '../components/dashboard/PopularProducts';
 import SalesTrendChart from '../components/dashboard/SalesTrendChart';
 
 const Dashboard: React.FC = () => {
-  const { sales, products, expenses, initialBalance } = useAppContext();
+  const { sales, products, expenses, initialBalance, creditPayments } = useAppContext();
   const [chartPeriod, setChartPeriod] = useState<'weekly' | 'monthly'>('weekly');
 
   const stats = useMemo(() => {
-    if (!sales || !products || !expenses) return null;
+    if (!sales || !products || !expenses || !creditPayments) return null;
 
     const now = new Date();
     const today = startOfDay(now);
@@ -36,6 +36,11 @@ const Dashboard: React.FC = () => {
     const lowStockThreshold = 10;
     const lowStockProductsCount = products.filter(p => p.stock > 0 && p.stock <= lowStockThreshold).length;
 
+    const unpaidSales = sales.filter(s => s.status === 'unpaid');
+    const totalUnpaidAmount = unpaidSales.reduce((sum, s) => sum + s.total, 0);
+    const totalPaidOnCredits = creditPayments.reduce((sum, p) => sum + p.amount, 0);
+    const outstandingCredit = totalUnpaidAmount - totalPaidOnCredits;
+
     const daysCount = chartPeriod === 'weekly' ? 7 : 30;
     const salesTrendData = Array.from({ length: daysCount }).map((_, i) => {
         const date = subDays(today, (daysCount - 1) - i);
@@ -53,9 +58,10 @@ const Dashboard: React.FC = () => {
       totalRevenue,
       netBalance,
       lowStockProductsCount,
+      outstandingCredit,
       salesTrendData,
     };
-  }, [sales, products, expenses, chartPeriod, initialBalance]);
+  }, [sales, products, expenses, chartPeriod, initialBalance, creditPayments]);
 
   if (!stats) {
     return <div className="text-center p-8">Chargement des données stratégiques...</div>;
@@ -95,15 +101,16 @@ const Dashboard: React.FC = () => {
           comparisonText="vs hier"
         />
         <DashboardStatCard 
-          title="Chiffre d'affaires"
-          value={formatCurrency(stats.totalRevenue)}
-          subtitle="Total des revenus"
-          icon={Wallet}
+          title="Total des Crédits"
+          value={formatCurrency(stats.outstandingCredit)}
+          subtitle="Montant dû par les clients"
+          icon={HandCoins}
+          valueColor="text-orange-600"
         />
         <DashboardStatCard 
           title="Solde Net"
           value={formatCurrency(stats.netBalance)}
-          subtitle="Solde initial + Revenus - Dépenses"
+          subtitle="Rev. Total - Dépenses Totales"
           icon={Landmark}
           valueColor={stats.netBalance >= 0 ? "text-green-600" : "text-red-600"}
         />

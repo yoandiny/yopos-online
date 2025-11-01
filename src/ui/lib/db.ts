@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { Product, Sale, StockMovement, Expense, Supplier } from '../types';
+import { Product, Sale, StockMovement, Expense, Supplier, Customer, CreditPayment } from '../types';
 
 export class KessDB extends Dexie {
   products!: Table<Product, string>;
@@ -7,9 +7,22 @@ export class KessDB extends Dexie {
   stockMovements!: Table<StockMovement, number>;
   expenses!: Table<Expense, string>;
   suppliers!: Table<Supplier, string>;
+  customers!: Table<Customer, string>;
+  creditPayments!: Table<CreditPayment, number>;
 
   constructor() {
     super('KessDB');
+    this.version(8).stores({
+      products: 'id, [companyId+posId], name, barcode, supplierId, syncStatus, _deleted',
+      sales: 'id, [companyId+posId], createdAt, status, customerId, syncStatus, _deleted',
+      stockMovements: '++id, movementId, [companyId+posId], productId, createdAt, syncStatus, _deleted',
+      expenses: 'id, [companyId+posId], createdAt, category, syncStatus, _deleted',
+      suppliers: 'id, [companyId+posId], name, syncStatus, _deleted',
+      customers: 'id, [companyId+posId], name, syncStatus, _deleted',
+      creditPayments: '++id, paymentId, [companyId+posId], saleId, syncStatus, _deleted',
+    });
+    
+    // Keep previous versions for migration path
     this.version(7).stores({
       products: 'id, [companyId+posId], name, barcode, supplierId, syncStatus, _deleted',
       sales: 'id, [companyId+posId], createdAt, syncStatus, _deleted',
@@ -17,8 +30,6 @@ export class KessDB extends Dexie {
       expenses: 'id, [companyId+posId], createdAt, category, syncStatus, _deleted',
       suppliers: 'id, [companyId+posId], name, syncStatus, _deleted',
     });
-    
-    // Keep previous versions for migration path
     this.version(6).stores({
       products: 'id, [companyId+posId], name, barcode, supplierId, syncStatus',
       sales: 'id, [companyId+posId], createdAt, syncStatus',

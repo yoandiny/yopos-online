@@ -21,7 +21,7 @@ export interface CartItem extends Omit<Product, 'syncStatus' | 'companyId' | 'po
   quantity: number;
 }
 
-export type PaymentMethod = 'cash' | 'mobile_money' | 'card';
+export type PaymentMethod = 'cash' | 'mobile_money' | 'card' | 'credit';
 
 export type MobileMoneyProvider = 'orange_money' | 'mvola' | 'airtel_money';
 
@@ -38,6 +38,8 @@ export interface Sale extends BaseEntity {
     amountGiven?: number;
     change?: number;
   };
+  status: 'paid' | 'unpaid';
+  customerId?: string;
 }
 
 export interface StockMovement {
@@ -65,6 +67,26 @@ export interface Supplier extends BaseEntity {
   phone?: string;
   email?: string;
   address?: string;
+}
+
+export interface Customer extends BaseEntity {
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+}
+
+export interface CreditPayment {
+  id?: number;
+  paymentId: string;
+  companyId: string;
+  posId: string;
+  saleId: string;
+  amount: number;
+  paymentMethod: Exclude<PaymentMethod, 'credit'>;
+  createdAt: string;
+  syncStatus: 'synced' | 'pending' | 'error';
+  _deleted?: boolean;
 }
 
 // For session management

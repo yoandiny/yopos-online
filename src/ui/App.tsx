@@ -16,6 +16,8 @@ import Stock from './pages/Stock';
 import Sales from './pages/Sales';
 import Expenses from './pages/Expenses';
 import Suppliers from './pages/Suppliers';
+import Customers from './pages/Customers';
+import Credits from './pages/Credits';
 
 const AppRoutes: React.FC = () => (
   <Router>
@@ -24,10 +26,12 @@ const AppRoutes: React.FC = () => (
         <Route path="/" element={<Dashboard />} />
         <Route path="/caisse" element={<CashRegister />} />
         <Route path="/produits" element={<Products />} />
+        <Route path="/fournisseurs" element={<Suppliers />} />
+        <Route path="/clients" element={<Customers />} />
         <Route path="/stock" element={<Stock />} />
         <Route path="/ventes" element={<Sales />} />
+        <Route path="/credits" element={<Credits />} />
         <Route path="/expenses" element={<Expenses />} />
-        <Route path="/fournisseurs" element={<Suppliers />} />
       </Routes>
     </AppLayout>
   </Router>

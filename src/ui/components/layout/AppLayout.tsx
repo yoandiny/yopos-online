@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, ShoppingCart, Package, BarChart, History, BanknoteArrowUp, Truck, LogOut } from 'lucide-react';
+import { LayoutGrid, ShoppingCart, Package, BarChart, History, BanknoteArrowUp, Truck, LogOut, Users, HandCoins } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Logo from '../../assets/logo.png';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,9 +11,11 @@ const navItems = [
   { to: '/caisse', icon: ShoppingCart, label: 'Caisse' },
   { to: '/produits', icon: Package, label: 'Produits' },
   { to: '/fournisseurs', icon: Truck, label: 'Fournisseurs' },
+  { to: '/clients', icon: Users, label: 'Clients' },
   { to: '/stock', icon: BarChart, label: 'Stock' },
   { to: '/ventes', icon: History, label: 'Ventes' },
-  {to: '/expenses', icon: BanknoteArrowUp, label: 'Dépenses' },
+  { to: '/credits', icon: HandCoins, label: 'Crédits' },
+  { to: '/expenses', icon: BanknoteArrowUp, label: 'Dépenses' },
 ];
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
