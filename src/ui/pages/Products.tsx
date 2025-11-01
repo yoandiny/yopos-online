@@ -7,7 +7,7 @@ import ProductModal from '../components/products/ProductModal';
 import ConfirmationModal from '../components/cash-register/ConfirmationModal';
 import Input from '../components/ui/Input';
 import { motion } from 'framer-motion';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Package, ConciergeBell } from 'lucide-react';
 import { Product } from '../types';
 
 const Products: React.FC = () => {
@@ -65,7 +65,7 @@ const Products: React.FC = () => {
         <div className="flex justify-between items-center">
           <div className="w-full max-w-xs">
             <Input 
-              placeholder="Rechercher un produit..."
+              placeholder="Rechercher un article..."
               icon={<Search size={18} />}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -73,7 +73,7 @@ const Products: React.FC = () => {
           </div>
           <Button onClick={openNewModal}>
               <Plus className="mr-2 h-4 w-4" />
-              Nouveau Produit
+              Nouvel Article
           </Button>
         </div>
 
@@ -83,7 +83,7 @@ const Products: React.FC = () => {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b bg-slate-50">
-                    <th className="p-4 font-semibold text-sm text-slate-600">Produit</th>
+                    <th className="p-4 font-semibold text-sm text-slate-600">Article</th>
                     <th className="p-4 font-semibold text-sm text-slate-600">Fournisseur</th>
                     <th className="p-4 font-semibold text-sm text-slate-600">Prix</th>
                     <th className="p-4 font-semibold text-sm text-slate-600">Stock</th>
@@ -95,16 +95,28 @@ const Products: React.FC = () => {
                   {filteredProducts.length > 0 ? filteredProducts.map((product) => (
                     <tr key={product.id} className="border-b hover:bg-slate-50/50">
                       <td className="p-4">
-                        <span className="font-medium text-slate-800">{product.name}</span>
+                        <div className="flex items-center">
+                            {product.type === 'service' ? 
+                                <ConciergeBell className="h-5 w-5 mr-3 text-blue-500 flex-shrink-0" /> : 
+                                <Package className="h-5 w-5 mr-3 text-slate-500 flex-shrink-0" />
+                            }
+                            <span className="font-medium text-slate-800">{product.name}</span>
+                        </div>
                       </td>
                       <td className="p-4 text-slate-600">{product.supplierId ? supplierMap.get(product.supplierId) : 'N/A'}</td>
                       <td className="p-4 text-slate-700">{formatCurrency(product.price)}</td>
                       <td className="p-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock > 20 ? 'bg-green-100 text-green-800' : product.stock > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                          {product.stock} unités
-                        </span>
+                        {product.type === 'product' ? (
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock > 20 ? 'bg-green-100 text-green-800' : product.stock > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                                {product.stock} unités
+                            </span>
+                        ) : (
+                            <span className="text-slate-400 italic">N/A</span>
+                        )}
                       </td>
-                      <td className="p-4 font-mono text-slate-600">{product.barcode}</td>
+                      <td className="p-4 font-mono text-slate-600">
+                        {product.type === 'product' && product.barcode ? product.barcode : <span className="text-slate-400 italic">N/A</span>}
+                      </td>
                       <td className="p-4">
                         <div className="flex items-center space-x-3">
                           <button onClick={() => openEditModal(product)} className="text-blue-600 hover:text-blue-800">
@@ -119,7 +131,7 @@ const Products: React.FC = () => {
                   )) : (
                     <tr>
                         <td colSpan={6} className="text-center p-8 text-slate-500">
-                          {products.length === 0 ? 'Aucun produit trouvé. Cliquez sur "Nouveau Produit" pour commencer.' : 'Aucun produit ne correspond à votre recherche.'}
+                          {products.length === 0 ? 'Aucun article trouvé. Cliquez sur "Nouvel Article" pour commencer.' : 'Aucun article ne correspond à votre recherche.'}
                         </td>
                     </tr>
                   )}
@@ -139,7 +151,7 @@ const Products: React.FC = () => {
         onClose={closeDeleteConfirm}
         onConfirm={handleDelete}
         title="Confirmer la suppression"
-        message={`Êtes-vous sûr de vouloir supprimer le produit "${deletingProduct?.name}" ? Cette action est irréversible.`}
+        message={`Êtes-vous sûr de vouloir supprimer l'article "${deletingProduct?.name}" ? Cette action est irréversible.`}
       />
     </>
   );

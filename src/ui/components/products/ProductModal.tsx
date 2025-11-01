@@ -39,6 +39,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
     }
   }, [product, isOpen]);
 
+  useEffect(() => {
+    if (type === 'service') {
+      setStock(0);
+      setBarcode('');
+    }
+  }, [type]);
+
   const clearForm = () => {
     setName('');
     setType('product');
@@ -56,7 +63,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
         name, 
         type, 
         price, 
-        stock: type === 'service' ? 0 : stock, 
+        stock, 
         barcode, 
         supplierId 
       };
@@ -103,7 +110,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
         </div>
         <div>
           <label htmlFor="barcode" className="block text-sm font-medium text-gray-700 mb-1">Code-barres (Optionnel)</label>
-          <Input id="barcode" value={barcode} onChange={e => setBarcode(e.target.value)} />
+          <Input id="barcode" value={barcode} onChange={e => setBarcode(e.target.value)} disabled={type === 'service'} />
         </div>
         <div>
           <label htmlFor="supplier" className="block text-sm font-medium text-gray-700 mb-1">Fournisseur (Optionnel)</label>

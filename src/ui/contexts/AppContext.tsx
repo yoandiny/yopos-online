@@ -249,6 +249,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [companyId, posId]);
   
+  const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => {
+    if (!companyId || !posId) throw new Error("Session invalide.");
+    const dataToSave = { ...productData };
+    if (dataToSave.type === 'service') {
+        dataToSave.stock = 0;
+        dataToSave.barcode = '';
+    }
+    return addEntity<Product>('products', dataToSave, 'prod', companyId, posId);
+  }, [companyId, posId]);
+
+  const updateProduct = useCallback(async (id: string, updates: Partial<Omit<Product, 'id'>>) => {
+      if (!companyId || !posId) throw new Error("Session invalide.");
+      const dataToUpdate = { ...updates };
+      const finalType = dataToUpdate.type || (await db.products.get(id))?.type;
+      if (finalType === 'service') {
+          dataToUpdate.stock = 0;
+          dataToUpdate.barcode = '';
+      }
+      await updateEntity('products', id, dataToUpdate);
+  }, [companyId, posId]);
+
+  const deleteProduct = useCallback(async (productId: string) => {
+      if (!companyId || !posId) throw new Error("Session invalide.");
+      await deleteEntity('products', productId);
+  }, [companyId, posId]);
+
   const crudHandler = useCallback((tableName: string, prefix: string) => {
     if (!companyId || !posId) return null;
     return {
@@ -258,7 +284,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, [companyId, posId]);
 
-  const productHandler = useMemo(() => crudHandler('products', 'prod'), [crudHandler]);
   const expenseHandler = useMemo(() => crudHandler('expenses', 'exp'), [crudHandler]);
   const supplierHandler = useMemo(() => crudHandler('suppliers', 'sup'), [crudHandler]);
   const customerHandler = useMemo(() => crudHandler('customers', 'cust'), [crudHandler]);
@@ -278,9 +303,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addSale,
     adjustStock,
     addCreditPayment,
-    addProduct: (data) => productHandler?.add(data) as Promise<string>,
-    updateProduct: (id, updates) => productHandler?.update(id, updates) as Promise<void>,
-    deleteProduct: (id) => productHandler?.remove(id) as Promise<void>,
+    addProduct,
+    updateProduct,
+    deleteProduct,
     addExpense: (data) => expenseHandler?.add(data) as Promise<string>,
     updateExpense: (id, updates) => expenseHandler?.update(id, updates) as Promise<void>,
     deleteExpense: (id) => expenseHandler?.remove(id) as Promise<void>,
@@ -295,7 +320,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     cart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartTotal,
     isFirstLaunch, initialBalance, setupInitialBalance,
     addSale, adjustStock, addCreditPayment,
-    productHandler, expenseHandler, supplierHandler, customerHandler
+    addProduct, updateProduct, deleteProduct,
+    expenseHandler, supplierHandler, customerHandler
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
