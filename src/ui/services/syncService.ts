@@ -15,6 +15,10 @@ export const syncDatabase = () => {
   }
 
   syncTimeout = window.setTimeout(async () => {
+    if (!navigator.onLine) {
+        console.log("Sync skipped: offline.");
+        return;
+    }
     console.log("Starting debounced database synchronization...");
     await pushChanges();
     console.log("Debounced database synchronization finished.");

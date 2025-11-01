@@ -6,6 +6,7 @@ import AllProductsStockTable from '../components/stock/AllProductsStockTable';
 import LowStockTable from '../components/stock/LowStockTable';
 import StockValueCard from '../components/stock/StockValueCard';
 import { useAppContext } from '../contexts/AppContext';
+import { Product } from '../types';
 
 type StockTab = 'all' | 'low' | 'adjustment';
 
@@ -13,13 +14,16 @@ const Stock: React.FC = () => {
   const [activeTab, setActiveTab] = useState<StockTab>('all');
   const { products } = useAppContext();
 
-  const stockStats = useMemo(() => {
-    if (!products) return { totalProducts: 0, totalUnits: 0, totalValue: 0 };
-    const totalProducts = products.length;
-    const totalUnits = products.reduce((sum, p) => sum + p.stock, 0);
-    const totalValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
-    return { totalProducts, totalUnits, totalValue };
+  const stockableProducts = useMemo(() => {
+    return products.filter(p => p.type === 'product');
   }, [products]);
+
+  const stockStats = useMemo(() => {
+    const totalProducts = stockableProducts.length;
+    const totalUnits = stockableProducts.reduce((sum, p) => sum + p.stock, 0);
+    const totalValue = stockableProducts.reduce((sum, p) => sum + p.price * p.stock, 0);
+    return { totalProducts, totalUnits, totalValue };
+  }, [stockableProducts]);
 
   const tabButtonClasses = (tabName: StockTab) => cn(
     'px-4 py-2 text-sm font-medium rounded-md transition-colors',
@@ -54,9 +58,9 @@ const Stock: React.FC = () => {
       </div>
 
       <div>
-        {activeTab === 'all' && <AllProductsStockTable />}
-        {activeTab === 'low' && <LowStockTable />}
-        {activeTab === 'adjustment' && <StockAdjustmentForm />}
+        {activeTab === 'all' && <AllProductsStockTable products={stockableProducts} />}
+        {activeTab === 'low' && <LowStockTable products={stockableProducts} />}
+        {activeTab === 'adjustment' && <StockAdjustmentForm products={stockableProducts} />}
       </div>
     </motion.div>
   );

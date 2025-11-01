@@ -1,16 +1,18 @@
 import React, { useMemo } from 'react';
-import { useAppContext } from '../../contexts/AppContext';
 import { formatCurrency } from '../../lib/utils';
 import { Card, CardContent } from '../ui/Card';
 import Button from '../ui/Button';
 import { Download, TriangleAlert } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { Product } from '../../types';
 
 const LOW_STOCK_THRESHOLD = 10;
 
-const LowStockTable: React.FC = () => {
-  const { products } = useAppContext();
+interface LowStockTableProps {
+  products: Product[];
+}
 
+const LowStockTable: React.FC<LowStockTableProps> = ({ products }) => {
   const lowStockProducts = useMemo(() => {
     return products.filter(p => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD)
                    .sort((a,b) => a.stock - b.stock);

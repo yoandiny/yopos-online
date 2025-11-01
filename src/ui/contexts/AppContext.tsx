@@ -114,8 +114,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (existingItem) {
         return prevCart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
       }
-      const { name, price, stock, barcode, id, supplierId } = product;
-      return [...prevCart, { name, price, stock, barcode, id, supplierId, quantity: 1 }];
+      const { name, price, stock, barcode, id, supplierId, type } = product;
+      return [...prevCart, { name, price, stock, barcode, id, supplierId, type, quantity: 1 }];
     });
   }, []);
 
@@ -156,16 +156,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             await db.sales.add(newSale);
 
             for (const item of saleData.items) {
-                const product = await db.products.get(item.id);
-                if (product) {
-                    const newStock = product.stock - item.quantity;
-                    await db.products.update(item.id, {
-                        stock: newStock,
-                        updatedAt: now,
-                        syncStatus: 'pending'
-                    });
-                } else {
-                    throw new Error(`Produit "${item.name}" (ID: ${item.id}) non trouvé.`);
+                if (item.type === 'product') {
+                    const product = await db.products.get(item.id);
+                    if (product) {
+                        const newStock = product.stock - item.quantity;
+                        await db.products.update(item.id, {
+                            stock: newStock,
+                            updatedAt: now,
+                            syncStatus: 'pending'
+                        });
+                    } else {
+                        throw new Error(`Produit "${item.name}" (ID: ${item.id}) non trouvé.`);
+                    }
                 }
             }
         });
@@ -183,6 +185,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await db.transaction('rw', db.products, db.stockMovements, async () => {
         const product = await db.products.get(productId);
         if (!product) throw new Error("Produit non trouvé");
+        if (product.type === 'service') throw new Error("Impossible d'ajuster le stock d'un service.");
         
         const newStock = product.stock + quantityChange;
         if (newStock < 0) throw new Error("Le stock ne peut pas être négatif.");

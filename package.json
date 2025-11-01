@@ -14,9 +14,6 @@
     "build": "npm run transpile:electron && vite build",
     "transpile:electron": "tsc -p src/electron/tsconfig.json",
     "lint": "eslint .",
-    "dist:win": "npm run build && electron-builder --win --x64",
-    "dist:linux": "npm run build && electron-builder --linux",
-    "dist:mac": "npm run build && electron-builder --mac",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make"
@@ -70,23 +67,5 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.32.1",
     "vite": "^6.3.5"
-  },
-  "build": {
-    "appId": "com.yotech.yopos",
-    "asar": true,
-    "productName": "YoPOS",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist-react/**/*",
-      "dist-electron/**/*"
-    ],
-    "extraMetadata": {
-      "main": "dist-electron/main.js"
-    },
-    "win": {
-      "icon": "src/ui/assets/icon.ico"
-    }
   }
 }

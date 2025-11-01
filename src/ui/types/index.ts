@@ -11,13 +11,21 @@ interface BaseEntity {
 
 export interface Product extends BaseEntity {
   name: string;
+  type: 'product' | 'service';
   barcode: string;
   price: number;
-  stock: number;
+  stock: number; // For services, this will be 0 and ignored
   supplierId?: string;
 }
 
-export interface CartItem extends Omit<Product, 'syncStatus' | 'companyId' | 'posId' | 'createdAt' | 'updatedAt' | '_deleted'> {
+export interface CartItem {
+  id: string;
+  name: string;
+  type: 'product' | 'service';
+  price: number;
+  stock: number;
+  barcode: string;
+  supplierId?: string;
   quantity: number;
 }
 

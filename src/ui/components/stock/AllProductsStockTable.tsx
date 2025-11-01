@@ -7,9 +7,13 @@ import Input from '../ui/Input';
 import { Download, Search, Plus } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import ProductModal from '../products/ProductModal';
+import { Product } from '../../types';
 
-const AllProductsStockTable: React.FC = () => {
-  const { products } = useAppContext();
+interface AllProductsStockTableProps {
+  products: Product[];
+}
+
+const AllProductsStockTable: React.FC<AllProductsStockTableProps> = ({ products }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -63,7 +67,7 @@ const AllProductsStockTable: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Button onClick={() => setIsModalOpen(true)} variant="secondary">
               <Plus size={18} className="mr-2" />
-              Ajouter un produit
+              Ajouter un article
             </Button>
             <Button onClick={handleExport} disabled={filteredProducts.length === 0}>
               <Download size={18} className="mr-2" />

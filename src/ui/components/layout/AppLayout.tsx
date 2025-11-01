@@ -1,10 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, ShoppingCart, Package, BarChart, History, BanknoteArrowUp, Truck, LogOut, Users, HandCoins } from 'lucide-react';
+import { LayoutGrid, ShoppingCart, Package, BarChart, History, BanknoteArrowUp, Truck, LogOut, Users, HandCoins, AreaChart } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Logo from '../../assets/logo.png';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
+import OnlineStatusIndicator from '../common/OnlineStatusIndicator';
 
 const navItems = [
   { to: '/', icon: LayoutGrid, label: 'Tableau' },
@@ -15,6 +16,7 @@ const navItems = [
   { to: '/stock', icon: BarChart, label: 'Stock' },
   { to: '/ventes', icon: History, label: 'Ventes' },
   { to: '/credits', icon: HandCoins, label: 'Crédits' },
+  { to: '/rapports', icon: AreaChart, label: 'Rapports' },
   { to: '/expenses', icon: BanknoteArrowUp, label: 'Dépenses' },
 ];
 
@@ -33,10 +35,13 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <p className="text-sm text-slate-500">{pos?.name}</p>
             </div>
           </div>
-          <Button variant="secondary" size="sm" onClick={logout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Changer
-          </Button>
+          <div className="flex items-center space-x-4">
+            <OnlineStatusIndicator />
+            <Button variant="secondary" size="sm" onClick={logout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Changer
+            </Button>
+          </div>
         </header>
 
         {/* Navigation */}

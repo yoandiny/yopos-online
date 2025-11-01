@@ -7,8 +7,12 @@ import { Plus, Minus } from 'lucide-react';
 import Combobox from '../ui/Combobox';
 import { Product } from '../../types';
 
-const StockAdjustmentForm: React.FC = () => {
-  const { products, adjustStock } = useAppContext();
+interface StockAdjustmentFormProps {
+  products: Product[];
+}
+
+const StockAdjustmentForm: React.FC<StockAdjustmentFormProps> = ({ products }) => {
+  const { adjustStock } = useAppContext();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(0);
   const [reason, setReason] = useState<string>('Réception fournisseur');
@@ -37,7 +41,7 @@ const StockAdjustmentForm: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <h3 className="text-lg font-semibold">Gestion du Stock</h3>
+        <h3 className="text-lg font-semibold">Ajustement Manuel du Stock</h3>
       </CardHeader>
       <CardContent className="space-y-6">
         <div>

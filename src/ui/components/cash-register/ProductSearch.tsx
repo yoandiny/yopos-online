@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatCurrency } from '../../lib/utils';
 import Input from '../ui/Input';
-import { Search } from 'lucide-react';
+import { Search, ConciergeBell } from 'lucide-react';
+import { Package } from 'lucide-react';
 
 const ProductSearch: React.FC = () => {
   const { products, addToCart } = useAppContext();
@@ -29,12 +30,20 @@ const ProductSearch: React.FC = () => {
             <button 
               key={product.id}
               onClick={() => addToCart(product)}
-              disabled={product.stock <= 0}
-              className="border rounded-lg p-3 text-center hover:shadow-md transition-shadow disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center bg-white"
+              disabled={product.type === 'product' && product.stock <= 0}
+              className="border rounded-lg p-3 text-center hover:shadow-md transition-shadow disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-between bg-white aspect-square"
             >
-              <span className="text-sm font-semibold text-gray-800">{product.name}</span>
-              <span className="text-xs text-gray-500 mt-1">{formatCurrency(product.price)}</span>
-              {product.stock <= 0 && <span className="text-xs text-red-500 mt-1">Épuisé</span>}
+              <div className="flex-1 flex flex-col justify-center items-center">
+                {product.type === 'service' ? 
+                    <ConciergeBell className="h-8 w-8 text-blue-500 mb-2" /> : 
+                    <Package className="h-8 w-8 text-slate-500 mb-2" />
+                }
+                <span className="text-sm font-semibold text-gray-800 leading-tight">{product.name}</span>
+              </div>
+              <div className="w-full mt-2">
+                <span className="text-xs text-gray-500">{formatCurrency(product.price)}</span>
+                {product.type === 'product' && product.stock <= 0 && <span className="block text-xs text-red-500 mt-1">Épuisé</span>}
+              </div>
             </button>
           ))}
         </div>

@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import { useAuth } from './contexts/AuthContext';
+import { syncDatabase } from './services/syncService';
 
 import SplashScreen from './components/common/SplashScreen';
 import AppLayout from './components/layout/AppLayout';
@@ -18,6 +19,7 @@ import Expenses from './pages/Expenses';
 import Suppliers from './pages/Suppliers';
 import Customers from './pages/Customers';
 import Credits from './pages/Credits';
+import Reports from './pages/Reports';
 
 const AppRoutes: React.FC = () => (
   <Router>
@@ -26,12 +28,13 @@ const AppRoutes: React.FC = () => (
         <Route path="/" element={<Dashboard />} />
         <Route path="/caisse" element={<CashRegister />} />
         <Route path="/produits" element={<Products />} />
-        <Route path="/fournisseurs" element={<Suppliers />} />
+        <Route path="/fournisseurs"={<Suppliers />} />
         <Route path="/clients" element={<Customers />} />
         <Route path="/stock" element={<Stock />} />
         <Route path="/ventes" element={<Sales />} />
         <Route path="/credits" element={<Credits />} />
         <Route path="/expenses" element={<Expenses />} />
+        <Route path="/rapports" element={<Reports />} />
       </Routes>
     </AppLayout>
   </Router>
@@ -51,6 +54,18 @@ const AppContent: React.FC = () => {
     }, 2000);
     return () => clearTimeout(timer);
   }, [isFirstLaunch]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('Back online, triggering sync.');
+      syncDatabase();
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
 
   const handleSaveBalance = (balance: number) => {
     setupInitialBalance(balance);
