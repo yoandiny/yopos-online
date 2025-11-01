@@ -8,13 +8,13 @@ import { syncDatabase } from '../services/syncService';
 
 // --- Internal Helper Functions ---
 
-const addEntity = async <T extends { id: string }>(
+const addEntity = async &lt;T extends { id: string }&gt;(
   tableName: string,
-  data: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>,
+  data: Omit&lt;T, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;,
   prefix: string,
   companyId: string,
   posId: string
-): Promise<string> => {
+): Promise&lt;string&gt; => {
   const now = new Date().toISOString();
   const id = `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const newEntity = {
@@ -54,27 +54,27 @@ interface AppContextType {
   customers: Customer[];
   creditPayments: CreditPayment[];
 
-  addSale: (sale: Omit<Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => Promise<void>;
+  addSale: (sale: Omit&lt;Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => Promise&lt;void&gt;;
   
-  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => Promise<string>;
-  updateProduct: (id: string, updates: Partial<Omit<Product, 'id'>>)=> Promise<void>;
-  deleteProduct: (productId: string) => Promise<void>;
+  addProduct: (product: Omit&lt;Product, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => Promise&lt;string&gt;;
+  updateProduct: (id: string, updates: Partial&lt;Omit&lt;Product, 'id'&gt;&gt;)=> Promise&lt;void&gt;;
+  deleteProduct: (productId: string) => Promise&lt;void&gt;;
   
-  adjustStock: (productId: string, quantityChange: number, reason: string) => Promise<void>;
+  adjustStock: (productId: string, quantityChange: number, reason: string) => Promise&lt;void&gt;;
   
-  addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => Promise<string>;
-  updateExpense: (id: string, updates: Partial<Omit<Expense, 'id'>>) => Promise<void>;
-  deleteExpense: (expenseId: string) => Promise<void>;
+  addExpense: (expense: Omit&lt;Expense, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => Promise&lt;string&gt;;
+  updateExpense: (id: string, updates: Partial&lt;Omit&lt;Expense, 'id'&gt;&gt;) => Promise&lt;void&gt;;
+  deleteExpense: (expenseId: string) => Promise&lt;void&gt;;
   
-  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => Promise<string>;
-  updateSupplier: (id: string, updates: Partial<Omit<Supplier, 'id' | 'createdAt'>>) => Promise<void>;
-  deleteSupplier: (supplierId: string) => Promise<void>;
+  addSupplier: (supplier: Omit&lt;Supplier, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => Promise&lt;string&gt;;
+  updateSupplier: (id: string, updates: Partial&lt;Omit&lt;Supplier, 'id' | 'createdAt'&gt;&gt;) => Promise&lt;void&gt;;
+  deleteSupplier: (supplierId: string) => Promise&lt;void&gt;;
 
-  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => Promise<string>;
-  updateCustomer: (id: string, updates: Partial<Omit<Customer, 'id' | 'createdAt'>>) => Promise<void>;
-  deleteCustomer: (customerId: string) => Promise<void>;
+  addCustomer: (customer: Omit&lt;Customer, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => Promise&lt;string&gt;;
+  updateCustomer: (id: string, updates: Partial&lt;Omit&lt;Customer, 'id' | 'createdAt'&gt;&gt;) => Promise&lt;void&gt;;
+  deleteCustomer: (customerId: string) => Promise&lt;void&gt;;
 
-  addCreditPayment: (saleId: string, amount: number, paymentMethod: Exclude<PaymentMethod, 'credit'>) => Promise<void>;
+  addCreditPayment: (saleId: string, amount: number, paymentMethod: Exclude&lt;PaymentMethod, 'credit'&gt;) => Promise&lt;void&gt;;
 
   cart: CartItem[];
   addToCart: (product: Product) => void;
@@ -88,9 +88,9 @@ interface AppContextType {
   setupInitialBalance: (balance: number) => void;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+const AppContext = createContext&lt;AppContextType | undefined&gt;(undefined);
 
-export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AppProvider: React.FC&lt;{ children: ReactNode }&gt; = ({ children }) => {
   const { company, pos } = useAuth();
   const companyId = company?.id;
   const posId = pos?.id;
@@ -105,7 +105,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const customers = useLiveQuery(() => companyId && posId ? db.customers.where({ companyId, posId }).filter(c => !c._deleted).orderBy('name').toArray() : [], liveQueryDeps, []);
   const creditPayments = useLiveQuery(() => companyId && posId ? db.creditPayments.where({ companyId, posId }).filter(cp => !cp._deleted).toArray() : [], liveQueryDeps, []);
 
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState&lt;CartItem[]&gt;([]);
   const cartTotal = useMemo(() => cart.reduce((total, item) => total + item.price * item.quantity, 0), [cart]);
 
   const addToCart = useCallback((product: Product) => {
@@ -125,19 +125,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
   const clearCart = useCallback(() => setCart([]), []);
 
-  const [isFirstLaunch, setIsFirstLaunch] = useLocalStorage<boolean>(`isFirstLaunch:${companyId}:${posId}`, true);
-  const [initialBalance, setInitialBalance] = useLocalStorage<number>(`initialBalance:${companyId}:${posId}`, 0);
+  const [isFirstLaunch, setIsFirstLaunch] = useLocalStorage&lt;boolean&gt;(`isFirstLaunch:${companyId}:${posId}`, true);
+  const [initialBalance, setInitialBalance] = useLocalStorage&lt;number&gt;(`initialBalance:${companyId}:${posId}`, 0);
 
   const setupInitialBalance = useCallback((balance: number) => {
     setInitialBalance(balance);
     setIsFirstLaunch(false);
   }, [setInitialBalance, setIsFirstLaunch]);
 
-  const addSale = useCallback(async (saleData: Omit<Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => {
+  const ensureAuth = useCallback(() => {
     if (!companyId || !posId) {
-        alert("Session invalide. Impossible d'enregistrer la vente.");
-        return;
+      const errorMessage = "Session invalide. Impossible d'effectuer l'opération.";
+      alert(errorMessage);
+      throw new Error(errorMessage);
     }
+    return { companyId, posId };
+  }, [companyId, posId]);
+
+  const addSale = useCallback(async (saleData: Omit&lt;Sale, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => {
+    const { companyId, posId } = ensureAuth();
     try {
         await db.transaction('rw', db.sales, db.products, async () => {
             const now = new Date().toISOString();
@@ -177,10 +183,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.error("Échec du traitement de la vente:", error);
         alert(`Une erreur est survenue: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }, [companyId, posId, clearCart]);
+  }, [ensureAuth, clearCart]);
 
   const adjustStock = useCallback(async (productId: string, quantityChange: number, reason: string) => {
-    if (!companyId || !posId) throw new Error("Session invalide.");
+    const { companyId, posId } = ensureAuth();
     try {
       await db.transaction('rw', db.products, db.stockMovements, async () => {
         const product = await db.products.get(productId);
@@ -188,11 +194,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (product.type === 'service') throw new Error("Impossible d'ajuster le stock d'un service.");
         
         const newStock = product.stock + quantityChange;
-        if (newStock < 0) throw new Error("Le stock ne peut pas être négatif.");
+        if (newStock &lt; 0) throw new Error("Le stock ne peut pas être négatif.");
 
         await db.products.update(productId, { stock: newStock, updatedAt: new Date().toISOString(), syncStatus: 'pending' });
 
-        const movement: Omit<StockMovement, 'id'> = {
+        const movement: Omit&lt;StockMovement, 'id'&gt; = {
           movementId: `mov_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           productId,
           companyId,
@@ -211,14 +217,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       alert(`Une erreur est survenue: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
-  }, [companyId, posId]);
+  }, [ensureAuth]);
 
-  const addCreditPayment = useCallback(async (saleId: string, amount: number, paymentMethod: Exclude<PaymentMethod, 'credit'>) => {
-    if (!companyId || !posId) throw new Error("Session invalide.");
+  const addCreditPayment = useCallback(async (saleId: string, amount: number, paymentMethod: Exclude&lt;PaymentMethod, 'credit'&gt;) => {
+    const { companyId, posId } = ensureAuth();
     try {
       await db.transaction('rw', db.creditPayments, db.sales, async () => {
         const paymentId = `cp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const newPayment: Omit<CreditPayment, 'id'> = {
+        const newPayment: Omit&lt;CreditPayment, 'id'&gt; = {
           paymentId,
           companyId,
           posId,
@@ -247,20 +253,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       alert(`Erreur: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
-  }, [companyId, posId]);
+  }, [ensureAuth]);
   
-  const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'>) => {
-    if (!companyId || !posId) throw new Error("Session invalide.");
+  const addProduct = useCallback(async (productData: Omit&lt;Product, 'id' | 'createdAt' | 'updatedAt' | 'companyId' | 'posId' | 'syncStatus' | '_deleted'&gt;) => {
+    const { companyId, posId } = ensureAuth();
     const dataToSave = { ...productData };
     if (dataToSave.type === 'service') {
         dataToSave.stock = 0;
         dataToSave.barcode = '';
     }
-    return addEntity<Product>('products', dataToSave, 'prod', companyId, posId);
-  }, [companyId, posId]);
+    return addEntity&lt;Product&gt;('products', dataToSave, 'prod', companyId, posId);
+  }, [ensureAuth]);
 
-  const updateProduct = useCallback(async (id: string, updates: Partial<Omit<Product, 'id'>>) => {
-      if (!companyId || !posId) throw new Error("Session invalide.");
+  const updateProduct = useCallback(async (id: string, updates: Partial&lt;Omit&lt;Product, 'id'&gt;&gt;) => {
+      ensureAuth();
       const dataToUpdate = { ...updates };
       const finalType = dataToUpdate.type || (await db.products.get(id))?.type;
       if (finalType === 'service') {
@@ -268,21 +274,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           dataToUpdate.barcode = '';
       }
       await updateEntity('products', id, dataToUpdate);
-  }, [companyId, posId]);
+  }, [ensureAuth]);
 
   const deleteProduct = useCallback(async (productId: string) => {
-      if (!companyId || !posId) throw new Error("Session invalide.");
+      ensureAuth();
       await deleteEntity('products', productId);
-  }, [companyId, posId]);
+  }, [ensureAuth]);
 
   const crudHandler = useCallback((tableName: string, prefix: string) => {
-    if (!companyId || !posId) return null;
     return {
-      add: (data: any) => addEntity(tableName, data, prefix, companyId, posId),
-      update: (id: string, updates: any) => updateEntity(tableName, id, updates),
-      remove: (id: string) => deleteEntity(tableName, id),
+      add: (data: any) => {
+        const { companyId, posId } = ensureAuth();
+        return addEntity(tableName, data, prefix, companyId, posId);
+      },
+      update: (id: string, updates: any) => {
+        ensureAuth();
+        return updateEntity(tableName, id, updates);
+      },
+      remove: (id: string) => {
+        ensureAuth();
+        return deleteEntity(tableName, id);
+      },
     };
-  }, [companyId, posId]);
+  }, [ensureAuth]);
 
   const expenseHandler = useMemo(() => crudHandler('expenses', 'exp'), [crudHandler]);
   const supplierHandler = useMemo(() => crudHandler('suppliers', 'sup'), [crudHandler]);
@@ -306,15 +320,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addProduct,
     updateProduct,
     deleteProduct,
-    addExpense: (data) => expenseHandler?.add(data) as Promise<string>,
-    updateExpense: (id, updates) => expenseHandler?.update(id, updates) as Promise<void>,
-    deleteExpense: (id) => expenseHandler?.remove(id) as Promise<void>,
-    addSupplier: (data) => supplierHandler?.add(data) as Promise<string>,
-    updateSupplier: (id, updates) => supplierHandler?.update(id, updates) as Promise<void>,
-    deleteSupplier: (id) => supplierHandler?.remove(id) as Promise<void>,
-    addCustomer: (data) => customerHandler?.add(data) as Promise<string>,
-    updateCustomer: (id, updates) => customerHandler?.update(id, updates) as Promise<void>,
-    deleteCustomer: (id) => customerHandler?.remove(id) as Promise<void>,
+    addExpense: expenseHandler.add,
+    updateExpense: expenseHandler.update,
+    deleteExpense: expenseHandler.remove,
+    addSupplier: supplierHandler.add,
+    updateSupplier: supplierHandler.update,
+    deleteSupplier: supplierHandler.remove,
+    addCustomer: customerHandler.add,
+    updateCustomer: customerHandler.update,
+    deleteCustomer: customerHandler.remove,
   }), [
     products, sales, stockMovements, expenses, suppliers, customers, creditPayments,
     cart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartTotal,
@@ -324,7 +338,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     expenseHandler, supplierHandler, customerHandler
   ]);
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return &lt;AppContext.Provider value={value}&gt;{children}&lt;/AppContext.Provider&gt;;
 };
 
 export const useAppContext = () => {
